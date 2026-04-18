@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script>
+    try {
+      if (localStorage.getItem("cropsySimTheme") === "dark") document.documentElement.removeAttribute("data-theme");
+      else document.documentElement.dataset.theme = "light";
+    } catch (e) {
+      document.documentElement.dataset.theme = "light";
+    }
+  </script>
+  <title>Cropsy — Field formation preview (alt.)</title>
+  <meta name="description" content="Alternate grass-field preview for crop circle designers: pick a formation, see symmetry and optional mood-board readouts." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #060a08; font-family: "DM Sans", system-ui, sans-serif; }
+    .app-shell { display: flex; flex-direction: column; height: 100%; color: #f5faf6; }
+    .app-header {
+      flex: 0 0 auto; max-height: none; min-height: 40px;
+      display: flex; align-items: center; justify-content: flex-start; flex-wrap: nowrap; gap: 12px;
+      padding: 0 14px 0 16px;
+      background: rgba(4, 14, 10, 0.88); border-bottom: 1px solid rgba(18, 144, 121, 0.2);
+      z-index: 5;
+    }
+    .brand { display: flex; align-items: baseline; gap: 10px; flex-shrink: 0; min-width: 0; }
+    a.brand { text-decoration: none; color: inherit; cursor: pointer; }
+    a.brand:focus-visible { outline: 2px solid #129079; outline-offset: 3px; border-radius: 4px; }
+    .brand-mark { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #129079; }
+    .brand-title { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; color: #f0faf4; }
+    .header-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+      flex-shrink: 0;
+      min-width: 0;
+    }
+    @media (min-width: 1024px) {
+      .header-toolbar {
+        flex: 1;
+        justify-content: flex-end;
+      }
+      .header-toolbar .header-nav {
+        flex: 1 1 auto;
+        justify-content: flex-end;
+        margin-left: 0;
+        min-width: 0;
+      }
+    }
+    .header-nav {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+      justify-content: flex-end; flex: 0 1 auto; min-width: 0;
+    }
+    .sim-nav-trigger {
+      display: none;
+      font-family: inherit;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid rgba(18, 144, 121, 0.45);
+      background: rgba(18, 144, 121, 0.18);
+      color: #7ad4bb;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .sim-nav-trigger:hover {
+      background: rgba(233, 30, 99, 0.2);
+      border-color: rgba(233, 30, 99, 0.45);
+      color: #ffb3d0;
+    }
+    .sim-nav-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px))
+        max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+    }
+    .sim-nav-layer[hidden] {
+      display: none !important;
+    }
+    .sim-nav-layer__backdrop {
+      position: absolute;
+      inset: 0;
+      border: none;
+      padding: 0;
+      margin: 0;
+      background: rgba(0, 0, 0, 0.52);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      cursor: pointer;
+    }
+    .sim-nav-layer__dialog {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 320px;
+      max-height: min(420px, 85vh);
+      overflow: auto;
+      background: rgba(6, 18, 12, 0.97);
+      border: 1px solid rgba(18, 144, 121, 0.38);
+      border-radius: 14px;
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55);
+      padding: 12px 14px 16px;
+    }
+    .sim-nav-layer__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(18, 144, 121, 0.22);
+    }
+    .sim-nav-layer__title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #129079;
+    }
+    .sim-nav-layer__close {
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(233, 30, 99, 0.18);
+      color: #f5faf6;
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .sim-nav-layer__close:hover {
+      background: rgba(233, 30, 99, 0.32);
+    }
+    .sim-nav-layer__links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sim-nav-layer__links a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: #129079;
+      background: rgba(18, 144, 121, 0.12);
+      border: 1px solid rgba(18, 144, 121, 0.35);
+    }
+    .sim-nav-layer__links a:hover {
+      background: rgba(233, 30, 99, 0.18);
+      border-color: rgba(233, 30, 99, 0.45);
+      color: #ffb3d0;
+    }
+    .sim-nav-layer__links a[aria-current="page"] {
+      background: rgba(233, 30, 99, 0.25);
+      border-color: rgba(233, 30, 99, 0.55);
+      color: #fff;
+    }
+    .header-nav a {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #129079; text-decoration: none; white-space: nowrap;
+    }
+    .header-nav a:hover { color: #E91E63; }
+    .header-nav a[aria-current="page"] {
+      color: #f0faf4;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-color: rgba(233, 30, 99, 0.65);
+    }
+    .header-actions { flex-shrink: 0; margin-left: 0; }
+    .header-actions button {
+      font-size: 14px; line-height: 1; padding: 6px 10px; border-radius: 6px;
+      border: 1px solid rgba(233, 30, 99, 0.35); background: rgba(18, 144, 121, 0.2); color: #e8fff4; cursor: pointer;
+    }
+    .header-actions button[aria-pressed="true"] { background: rgba(233, 30, 99, 0.35); border-color: #E91E63; }
+    .main-stage { flex: 1; display: flex; min-height: 0; position: relative; }
+    .canvas-shell { flex: 1; min-width: 0; position: relative; background: #050505; }
+    #canvas { display: block; width: 100%; height: 100%; touch-action: none; vertical-align: middle; }
+    .transport-overlay {
+      position: absolute; bottom: 0; left: 0; right: 0; min-height: 44px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+      padding: 10px 16px; z-index: 10;
+      background: rgba(0, 0, 0, 0.42); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      transition: opacity 0.35s ease;
+    }
+    .transport-overlay.hidden { opacity: 0; pointer-events: none; }
+    .transport-hint { font-size: 11px; font-weight: 500; color: rgba(245, 250, 246, 0.85); letter-spacing: 0.04em; }
+    .transport-badge {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(144, 202, 249, 0.9);
+      text-decoration: none;
+    }
+    .transport-badge:hover {
+      color: #fff;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .transport-badge:focus-visible {
+      outline: 2px solid rgba(144, 202, 249, 0.85);
+      outline-offset: 3px;
+      border-radius: 2px;
+    }
+    .control-panel {
+      --panel-w: 280px;
+      --panel-mobile-h: min(46vh, 360px);
+      position: relative; flex: 0 0 var(--panel-w); width: var(--panel-w); max-width: min(var(--panel-w), 100%);
+      display: flex; flex-direction: column;
+      background: rgba(6, 18, 12, 0.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border-left: 1px solid rgba(18, 144, 121, 0.22);
+      box-shadow: -8px 0 32px rgba(0, 0, 0, 0.35);
+    }
+    .control-panel.is-panel-drag { transition: none !important; }
+    .control-panel.is-collapsed { flex-basis: 44px; width: 44px; min-width: 44px; }
+    .control-panel.is-collapsed .panel-scroll,
+    .control-panel.is-collapsed .panel-resize-handle { display: none; }
+    .panel-collapse-edge {
+      position: absolute; left: 0; top: 50%; transform: translateY(-50%); z-index: 3;
+      width: 22px; height: 48px; margin-left: -11px; padding: 0; border-radius: 8px 0 0 8px;
+      border: 1px solid rgba(233, 30, 99, 0.35); border-right: none;
+      background: rgba(8, 22, 16, 0.95); color: #e8fff4; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; line-height: 0;
+    }
+    .panel-collapse-edge__chev {
+      display: block; width: 0; height: 0; border-style: solid;
+      border-width: 5px 6px 5px 0;
+      border-color: transparent currentColor transparent transparent;
+      flex-shrink: 0; transition: transform 0.2s ease;
+    }
+    .control-panel.is-collapsed .panel-collapse-edge__chev { transform: rotate(180deg); }
+    .panel-collapse-edge:hover { background: rgba(233, 30, 99, 0.25); }
+    @media (min-width: 1024px) {
+      .control-panel { --panel-w: 256px; }
+      .panel-collapse-edge {
+        width: 20px; height: 44px;
+        margin-left: -15px;
+        border-radius: 10px 0 0 10px;
+        background: rgba(8, 22, 16, 0.96);
+        color: #e8fff4;
+        border: 1px solid rgba(233, 30, 99, 0.4);
+        border-right: none;
+        box-shadow: none;
+      }
+      .panel-collapse-edge:hover {
+        background: rgba(12, 38, 28, 0.98);
+        border-color: rgba(90, 200, 175, 0.45);
+      }
+      .panel-collapse-edge:focus-visible {
+        outline: 2px solid rgba(233, 30, 99, 0.55);
+        outline-offset: 2px;
+      }
+      .panel-collapse-edge__chev {
+        transform-origin: center;
+        border-width: 5px 0 5px 6px;
+        border-color: transparent transparent transparent currentColor;
+        transform: none;
+      }
+      .control-panel.is-collapsed .panel-collapse-edge__chev {
+        transform: rotate(180deg);
+      }
+    }
+    .panel-resize-handle { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 2; margin-left: -3px; }
+    .panel-resize-handle:hover { background: rgba(233, 30, 99, 0.15); }
+    .panel-mobile-resize {
+      display: none;
+    }
+    .panel-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      width: 100%;
+      min-width: 0;
+      padding: 14px 14px 20px 18px;
+      scrollbar-gutter: stable;
+      scrollbar-color: rgba(233, 30, 99, 0.45) rgba(0, 0, 0, 0.2);
+    }
+    .acc {
+      border: 1px solid rgba(18, 144, 121, 0.2); border-radius: 10px; margin-bottom: 10px;
+      background: rgba(0, 0, 0, 0.18); overflow: hidden;
+    }
+    .acc summary {
+      list-style: none; cursor: pointer; padding: 10px 12px; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase; color: #7a9a8a;
+      display: flex; align-items: center; justify-content: space-between; user-select: none;
+    }
+    .acc summary::-webkit-details-marker { display: none; }
+    .acc summary::after { content: "\25BE"; font-size: 10px; opacity: 0.6; transition: transform 0.2s; }
+    .acc:not([open]) summary::after { transform: rotate(-90deg); }
+    .acc .acc-body { padding: 0 12px 12px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+    .panel-lede { margin: 0 0 10px; font-size: 12px; line-height: 1.5; color: rgba(245, 250, 246, 0.82); }
+    .presets {
+      display: flex; flex-wrap: wrap; gap: 7px; margin-top: 6px;
+      max-height: 42vh; overflow-y: auto; padding-right: 2px;
+      scrollbar-color: rgba(233, 30, 99, 0.45) rgba(0, 0, 0, 0.2);
+    }
+    .presets button {
+      display: inline-flex; align-items: center; justify-content: center;
+      font-family: inherit; font-size: 9px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(233, 30, 99, 0.35);
+      background: rgba(18, 144, 121, 0.18); color: #e8fff4; cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+    .presets button:hover { background: rgba(233, 30, 99, 0.22); border-color: rgba(233, 30, 99, 0.55); color: #fff; }
+    .presets button.active { background: rgba(233, 30, 99, 0.38); border-color: #E91E63; color: #fff; }
+    .readout-hz { font-size: 26px; font-weight: 600; letter-spacing: 0.04em; color: #fbbf24; margin-top: 4px; }
+    .readout-hz small { font-size: 11px; font-weight: 600; color: #8a9a92; margin-left: 4px; letter-spacing: 0.12em; }
+    .readout-mode { font-size: 10px; color: #a8c4b8; margin-top: 6px; letter-spacing: 0.08em; }
+    .readout-stats { margin-top: 14px; font-size: 11px; line-height: 1.65; color: rgba(245, 250, 246, 0.78); }
+    .readout-stats div { margin-bottom: 4px; }
+    .readout-stats .lbl { color: #7a9a8a; letter-spacing: 0.06em; }
+    .readout-stats .val { color: #34d399; font-weight: 500; }
+    .badge {
+      display: inline-block; margin-top: 8px; font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 3px 7px; border-radius: 4px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.25); color: #93c5fd;
+    }
+    .app-shell.focus-mode .control-panel { display: none !important; }
+    @media (max-width: 639px) {
+      .app-header {
+        flex-wrap: wrap;
+        padding: 10px 12px 12px;
+        align-items: center;
+        row-gap: 0;
+      }
+      .brand { flex: 1 1 auto; min-width: 0; order: 1; }
+      .header-toolbar { order: 2; margin-left: auto; flex: 0 0 auto; }
+      .sim-nav-trigger { display: inline-flex; }
+      .header-toolbar .header-nav {
+        display: none !important;
+      }
+    }
+    @media (max-width: 1023px) {
+      .main-stage { flex-direction: column; }
+      .canvas-shell { flex: 1; min-height: 42vh; }
+      .control-panel {
+        flex: 0 0 auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: var(--panel-mobile-h, min(46vh, 360px));
+        max-height: var(--panel-mobile-h, min(46vh, 360px));
+        min-height: 180px;
+        border-left: none; border-top: 1px solid rgba(18, 144, 121, 0.25);
+        border-radius: 14px 14px 0 0; box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+      }
+      .control-panel.is-collapsed {
+        height: auto !important;
+        max-height: 52px !important;
+        min-height: 0;
+      }
+      .panel-resize-handle { display: none; }
+      .panel-mobile-resize {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        min-height: 44px;
+        margin: 2px 12px 0;
+        padding: 0;
+        border-radius: 999px;
+        cursor: ns-resize;
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+        background: transparent;
+        position: relative;
+        z-index: 2;
+        overscroll-behavior: none;
+      }
+      .panel-mobile-resize::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 44px;
+        height: 5px;
+        border-radius: 3px;
+        background: rgba(18, 144, 121, 0.55);
+      }
+      .panel-mobile-resize:hover::after {
+        background: rgba(233, 30, 99, 0.55);
+      }
+      .panel-scroll {
+        padding-left: max(14px, env(safe-area-inset-left, 0px));
+        padding-right: max(14px, env(safe-area-inset-right, 0px));
+        padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+      }
+      .panel-collapse-edge { top: 8px; transform: none; margin-left: 8px; border-radius: 8px; border: 1px solid rgba(233, 30, 99, 0.35); }
+      .control-panel.is-collapsed .panel-mobile-resize { display: none; }
+    }
+  </style>
+  <link rel="stylesheet" href="/sim-theme.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <a class="brand" href="/" aria-label="Cropsy — home">
+        <span class="brand-mark">Cropsy</span>
+        <span class="brand-title">Field preview (alt.)</span>
+      </a>
+      <div class="header-toolbar">
+        <button
+          type="button"
+          class="sim-nav-trigger"
+          id="simNavOpen"
+          aria-expanded="false"
+          aria-controls="simNavDialog"
+          aria-haspopup="dialog"
+          aria-label="Open site menu"
+        >
+          Menu
+        </button>
+        <nav class="header-nav" aria-label="Site links">
+          <a href="/">Home</a>
+          <a href="/grass-crop-circle.html">Grass designer</a>
+          <a href="/demo/">Cymatics plate</a>
+          <a href="/field.html" aria-current="page">Field preview</a>
+          <a href="/crop-circle-3d.html">Rings 3D</a>
+        </nav>
+        <div class="header-actions">
+          <button type="button" id="themeToggle" class="sim-theme-toggle">&#x2600;</button>
+          <button type="button" id="focusToggle" aria-pressed="false" title="Focus mode">&#x25E7;</button>
+        </div>
+      </div>
+    </header>
+    <div id="simNavLayer" class="sim-nav-layer" hidden>
+      <button type="button" class="sim-nav-layer__backdrop" id="simNavBackdrop" tabindex="-1" aria-label="Close menu"></button>
+      <div class="sim-nav-layer__dialog" id="simNavDialog" role="dialog" aria-modal="true" aria-labelledby="simNavTitle" tabindex="-1">
+        <div class="sim-nav-layer__head">
+          <span class="sim-nav-layer__title" id="simNavTitle">Cropsy</span>
+          <button type="button" class="sim-nav-layer__close" id="simNavClose" aria-label="Close menu">&times;</button>
+        </div>
+        <nav class="sim-nav-layer__links" aria-label="Site links">
+          <a href="/">Home</a>
+          <a href="/grass-crop-circle.html">Grass designer</a>
+          <a href="/demo/">Cymatics plate</a>
+          <a href="/field.html" aria-current="page">Field preview</a>
+          <a href="/crop-circle-3d.html">Rings 3D</a>
+        </nav>
+      </div>
+    </div>
+    <div class="main-stage">
+      <div class="canvas-shell" id="canvasShell">
+        <canvas id="canvas" aria-label="Grass field formation preview"></canvas>
+        <div class="transport-overlay" id="transportOverlay" role="status">
+          <span class="transport-hint">Drag to orbit · scroll to zoom · auto-rotate</span>
+          <a
+            class="transport-badge"
+            href="https://nocturnal.cloud"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="https://nocturnal.cloud"
+            aria-label="Built by Nocturnal Labs — nocturnal.cloud (opens in a new tab)"
+            >Built by Nocturnal Labs</a>
+        </div>
+      </div>
+      <aside class="control-panel" id="controlPanel">
+        <button type="button" class="panel-collapse-edge" id="panelCollapse" aria-expanded="true" title="Collapse (])"><span class="panel-collapse-edge__chev" aria-hidden="true"></span></button>
+        <div class="panel-resize-handle" id="panelResize" aria-hidden="true"></div>
+        <div
+          class="panel-mobile-resize"
+          id="panelMobileResize"
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Drag to resize panel height"
+        ></div>
+        <div class="panel-scroll">
+          <details class="acc" open>
+            <summary>Pattern</summary>
+            <div class="acc-body">
+              <p class="panel-lede">Choose a formation to see how paths flatten blades. Presets follow <strong>crop-catelog.md</strong> §1–48, then extras. Hz and mode labels in Readout are for presentation only — not field instruments.</p>
+              <div class="presets" id="selector" role="group" aria-label="Formation pattern"></div>
+            </div>
+          </details>
+          <details class="acc" open>
+            <summary>Readout</summary>
+            <div class="acc-body">
+              <div class="readout-hz"><span id="st-hz">0</span><small>Hz</small></div>
+              <div class="readout-mode" id="st-mode">mode —</div>
+              <div class="readout-stats">
+                <div><span class="lbl">Symmetry</span> <span class="val" id="st-sym">—</span></div>
+                <div><span class="lbl">Blades (est.)</span> <span class="val" id="st-blades">—</span></div>
+                <div><span class="lbl">Pattern</span> <span class="val" id="st-name">—</span></div>
+              </div>
+              <span class="badge">Mood-board pairing only</span>
+            </div>
+          </details>
+          <details class="acc">
+            <summary>About</summary>
+            <div class="acc-body">
+              <p class="panel-lede" style="margin-top:0">Second take on the grass shader field — compare with the <a href="/grass-crop-circle.html" style="color:#64b5f6">main grass designer</a>.</p>
+            </div>
+          </details>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+    import { getFieldPreviewPatterns } from "/crop-field-patterns.mjs";
+    import { initSimTheme } from "/sim-theme.mjs";
+
+    const BLADE_COUNT = 32000;
+    const FIELD_RADIUS = 14;
+    const BLADE_COUNT_EST_FLAT = Math.round(BLADE_COUNT * 0.18);
+
+    const LINE_WIDTHS = { circle: 0.35, line: 0.25, polygon: 0.3, arc: 0.3 };
+
+    function computeShapeDistance(gx, gz, shape) {
+      const lineWidth = LINE_WIDTHS[shape.type];
+      switch (shape.type) {
+        case "circle": {
+          const dx = gx - shape.cx;
+          const dz = gz - shape.cz;
+          const dist = Math.sqrt(dx * dx + dz * dz);
+          const ringDist = Math.abs(dist - shape.r);
+          if (ringDist < lineWidth) return (1.0 - ringDist / lineWidth) * shape.flatten;
+          return 0;
+        }
+        case "line": {
+          const lx = shape.x2 - shape.x1;
+          const lz = shape.z2 - shape.z1;
+          const len = Math.sqrt(lx * lx + lz * lz);
+          if (len < 0.01) return 0;
+          const t = Math.max(0, Math.min(1, ((gx - shape.x1) * lx + (gz - shape.z1) * lz) / (len * len)));
+          const px = shape.x1 + t * lx;
+          const pz = shape.z1 + t * lz;
+          const dist = Math.sqrt((gx - px) ** 2 + (gz - pz) ** 2);
+          if (dist < lineWidth) return (1.0 - dist / lineWidth) * shape.flatten;
+          return 0;
+        }
+        case "polygon": {
+          let maxF = 0;
+          for (let s = 0; s < shape.sides; s++) {
+            const a1 = (s / shape.sides) * Math.PI * 2 + shape.offset;
+            const a2 = ((s + 1) / shape.sides) * Math.PI * 2 + shape.offset;
+            const x1 = shape.r * Math.cos(a1), z1 = shape.r * Math.sin(a1);
+            const x2 = shape.r * Math.cos(a2), z2 = shape.r * Math.sin(a2);
+            const lxx = x2 - x1, lzz = z2 - z1;
+            const llen = Math.sqrt(lxx * lxx + lzz * lzz);
+            const tt = Math.max(0, Math.min(1, ((gx - x1) * lxx + (gz - z1) * lzz) / (llen * llen)));
+            const ppx = x1 + tt * lxx, ppz = z1 + tt * lzz;
+            const ddist = Math.sqrt((gx - ppx) ** 2 + (gz - ppz) ** 2);
+            if (ddist < lineWidth) maxF = Math.max(maxF, (1.0 - ddist / lineWidth) * shape.flatten);
+          }
+          return maxF;
+        }
+        case "arc": {
+          const dx = gx - shape.cx;
+          const dz = gz - shape.cz;
+          const dist = Math.sqrt(dx * dx + dz * dz);
+          const ringDist = Math.abs(dist - shape.r);
+          let angle = Math.atan2(dz, dx);
+          if (angle < 0) angle += Math.PI * 2;
+          let start = ((shape.startAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+          let end = ((shape.endAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+          const inArc = start <= end ? angle >= start && angle <= end : angle >= start || angle <= end;
+          if (ringDist < lineWidth && inArc) return (1.0 - ringDist / lineWidth) * shape.flatten;
+          return 0;
+        }
+        default:
+          return 0;
+      }
+    }
+
+    function computeFlattenMap(grassPositions, bladeCount, shapes) {
+      const map = new Float32Array(bladeCount);
+      for (let i = 0; i < bladeCount; i++) {
+        const gx = grassPositions[i * 2];
+        const gz = grassPositions[i * 2 + 1];
+        let maxFlatten = 0;
+        for (const shape of shapes) {
+          const f = computeShapeDistance(gx, gz, shape);
+          if (f > maxFlatten) maxFlatten = f;
+        }
+        map[i] = Math.min(1.0, maxFlatten);
+      }
+      return map;
+    }
+
+    function interpolateFlattenMap(current, target, delta, speed = 2.0) {
+      let settled = true;
+      const step = Math.min(1.0, delta * speed);
+      for (let i = 0; i < current.length; i++) {
+        const diff = target[i] - current[i];
+        if (Math.abs(diff) > 0.001) {
+          current[i] += diff * step;
+          settled = false;
+        }
+      }
+      return settled;
+    }
+
+    const _preview = getFieldPreviewPatterns();
+    const fi = _preview.findIndex((p) => p.id === "flower-of-life");
+    const FIELD_PATTERNS =
+      fi > 0 ? [_preview[fi], ..._preview.slice(0, fi), ..._preview.slice(fi + 1)] : _preview;
+
+    const grassVertexShader = `
+      attribute vec3 offset;
+      attribute float scale;
+      attribute float rotation;
+      attribute float phase;
+      attribute vec3 bladeColor;
+      attribute float flatten;
+
+      uniform float u_time;
+      uniform float u_windStrength;
+      uniform float u_windFreq;
+
+      varying vec3 vColor;
+      varying float vHeight;
+      varying float vFlatten;
+
+      void main() {
+        vFlatten = flatten;
+        float heightFactor = position.y;
+        vHeight = heightFactor;
+
+        float bladeScale = scale * mix(1.0, 0.08, flatten);
+        vec3 pos = position;
+        pos.y *= bladeScale;
+        pos.x *= mix(1.0, 2.5, flatten);
+
+        float cosR = cos(rotation);
+        float sinR = sin(rotation);
+        vec3 rotated = vec3(
+          pos.x * cosR - pos.z * sinR,
+          pos.y,
+          pos.x * sinR + pos.z * cosR
+        );
+
+        float windPhase = offset.x * 0.3 + offset.z * 0.2 + phase;
+        float windX = sin(u_time * u_windFreq + windPhase) * u_windStrength * heightFactor;
+        float windZ = cos(u_time * u_windFreq * 0.7 + windPhase * 1.3) * u_windStrength * 0.5 * heightFactor;
+
+        float bendAngle = flatten * 1.4;
+        float bendCos = cos(bendAngle);
+        float bendSin = sin(bendAngle);
+        vec3 bent = vec3(
+          rotated.x,
+          rotated.y * bendCos - rotated.z * bendSin,
+          rotated.y * bendSin + rotated.z * bendCos
+        );
+
+        vec3 final = bent + offset;
+        final.x += windX;
+        final.z += windZ;
+
+        vec3 standingColour = bladeColor;
+        vec3 flatColour = vec3(0.45, 0.38, 0.18);
+        vColor = mix(standingColour, flatColour, flatten * 0.8);
+        vColor += vec3(0.08, 0.06, 0.0) * heightFactor;
+
+        gl_Position = projectionMatrix * viewMatrix * vec4(final, 1.0);
+      }
+    `;
+
+    const grassFragmentShader = `
+      varying vec3 vColor;
+      varying float vHeight;
+      varying float vFlatten;
+
+      void main() {
+        float shade = 0.5 + vHeight * 0.5;
+        vec3 col = vColor * shade;
+        col += vec3(0.02, 0.04, 0.01) * vFlatten * (1.0 - vHeight);
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `;
+
+    const glowVertexShader = `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
+
+    const glowFragmentShader = `
+      uniform float u_time;
+      varying vec2 vUv;
+      void main() {
+        float dist = distance(vUv, vec2(0.5));
+        float glow = smoothstep(0.5, 0.0, dist) * 0.08;
+        float pulse = 0.5 + 0.5 * sin(u_time * 0.5);
+        glow *= 0.7 + pulse * 0.3;
+        gl_FragColor = vec4(0.3, 0.5, 0.2, glow);
+      }
+    `;
+
+    const canvas = document.getElementById("canvas");
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.9;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x050505, 0.012);
+    scene.background = new THREE.Color(0x050505);
+
+    initSimTheme(document.getElementById("themeToggle"));
+
+    const camera = new THREE.PerspectiveCamera(55, 1.2, 0.1, 200);
+    camera.position.set(10, 34, 10);
+
+    const controls = new OrbitControls(camera, canvas);
+    controls.target.set(0, -1, 0);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    controls.autoRotate = !reduceMotion;
+    controls.autoRotateSpeed = 0.32;
+    controls.maxPolarAngle = Math.PI / 2 - 0.15;
+    controls.minDistance = 8;
+    controls.maxDistance = 48;
+    controls.update();
+
+    const canvasShell = document.getElementById("canvasShell");
+    const controlPanel = document.getElementById("controlPanel");
+    const appShell = document.querySelector(".app-shell");
+    function syncSize() {
+      const rect = canvasShell.getBoundingClientRect();
+      const w = Math.max(1, Math.round(rect.width));
+      const h = Math.max(1, Math.round(rect.height));
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h, false);
+    }
+    let syncSizeRaf = 0;
+    function scheduleSyncSize() {
+      cancelAnimationFrame(syncSizeRaf);
+      syncSizeRaf = requestAnimationFrame(() => {
+        syncSizeRaf = 0;
+        syncSize();
+      });
+    }
+    new ResizeObserver(() => scheduleSyncSize()).observe(canvasShell);
+    const transportOverlay = document.getElementById("transportOverlay");
+    let transportTimer = 0;
+    function pokeTransport() {
+      transportOverlay.classList.remove("hidden");
+      clearTimeout(transportTimer);
+      transportTimer = setTimeout(() => transportOverlay.classList.add("hidden"), 3200);
+    }
+    canvasShell.addEventListener("mousemove", pokeTransport);
+    canvasShell.addEventListener("touchstart", pokeTransport, { passive: true });
+    pokeTransport();
+    const LS_PANEL = "fieldPanelW";
+    const LS_COLLAPSED = "fieldPanelCollapsed";
+    const LS_FOCUS = "fieldFocus";
+    const savedW = localStorage.getItem(LS_PANEL);
+    if (savedW) {
+      const n = parseInt(savedW, 10);
+      if (n >= 240 && n <= 400) controlPanel.style.setProperty("--panel-w", `${n}px`);
+    }
+    function setPanelCollapsed(collapsed) {
+      controlPanel.classList.toggle("is-collapsed", collapsed);
+      document.getElementById("panelCollapse").setAttribute("aria-expanded", String(!collapsed));
+      localStorage.setItem(LS_COLLAPSED, collapsed ? "1" : "0");
+      scheduleSyncSize();
+    }
+    document.getElementById("panelCollapse").addEventListener("click", () => {
+      setPanelCollapsed(!controlPanel.classList.contains("is-collapsed"));
+    });
+    let resizeActive = false;
+    document.getElementById("panelResize").addEventListener("mousedown", (e) => {
+      if (window.matchMedia("(max-width: 1023px)").matches) return;
+      resizeActive = true;
+      controlPanel.classList.add("is-panel-drag");
+      e.preventDefault();
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!resizeActive) return;
+      const newW = Math.min(400, Math.max(240, window.innerWidth - e.clientX));
+      controlPanel.style.setProperty("--panel-w", `${newW}px`);
+      localStorage.setItem(LS_PANEL, String(Math.round(newW)));
+      scheduleSyncSize();
+    });
+    window.addEventListener("mouseup", () => {
+      if (resizeActive) {
+        resizeActive = false;
+        controlPanel.classList.remove("is-panel-drag");
+        scheduleSyncSize();
+      }
+    });
+    function setFocusMode(on) {
+      appShell.classList.toggle("focus-mode", on);
+      document.getElementById("focusToggle").setAttribute("aria-pressed", String(on));
+      localStorage.setItem(LS_FOCUS, on ? "1" : "0");
+      scheduleSyncSize();
+    }
+    document.getElementById("focusToggle").addEventListener("click", () =>
+      setFocusMode(!appShell.classList.contains("focus-mode"))
+    );
+    if (localStorage.getItem(LS_FOCUS) === "1") setFocusMode(true);
+    else if (localStorage.getItem(LS_COLLAPSED) === "1") setPanelCollapsed(true);
+
+    const LS_PANEL_MOBILE_H = "fieldPanelMobileH";
+    const panelMobileResize = document.getElementById("panelMobileResize");
+    const mqMobilePanel = window.matchMedia("(max-width: 1023px)");
+    function applyMobilePanelHeight(px) {
+      if (!mqMobilePanel.matches) return;
+      const vh = window.innerHeight;
+      const h = Math.round(Math.max(200, Math.min(px, vh * 0.88)));
+      controlPanel.style.setProperty("--panel-mobile-h", `${h}px`);
+      localStorage.setItem(LS_PANEL_MOBILE_H, String(h));
+    }
+    function initMobilePanelHeight() {
+      if (!mqMobilePanel.matches) return;
+      const raw = localStorage.getItem(LS_PANEL_MOBILE_H);
+      const vh = window.innerHeight;
+      const def = Math.min(Math.round(vh * 0.46), 420);
+      const parsed = raw ? parseInt(raw, 10) : NaN;
+      applyMobilePanelHeight(Number.isFinite(parsed) ? parsed : def);
+    }
+    initMobilePanelHeight();
+    window.addEventListener("resize", () => {
+      if (mqMobilePanel.matches) initMobilePanelHeight();
+    });
+    let mobilePanelDrag = false;
+    let mobilePanelStartY = 0;
+    let mobilePanelStartH = 0;
+    if (panelMobileResize) {
+      function onMobilePanelPointerMove(e) {
+        if (!mobilePanelDrag) return;
+        e.preventDefault();
+        const dy = e.clientY - mobilePanelStartY;
+        applyMobilePanelHeight(mobilePanelStartH - dy);
+        scheduleSyncSize();
+      }
+      function endMobilePanelDrag() {
+        if (!mobilePanelDrag) return;
+        mobilePanelDrag = false;
+        document.removeEventListener("pointermove", onMobilePanelPointerMove);
+        document.removeEventListener("pointerup", endMobilePanelDrag);
+        document.removeEventListener("pointercancel", endMobilePanelDrag);
+        scheduleSyncSize();
+      }
+      panelMobileResize.addEventListener("pointerdown", (e) => {
+        if (!mqMobilePanel.matches || controlPanel.classList.contains("is-collapsed")) return;
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        mobilePanelDrag = true;
+        mobilePanelStartY = e.clientY;
+        mobilePanelStartH = controlPanel.getBoundingClientRect().height;
+        document.addEventListener("pointermove", onMobilePanelPointerMove, { passive: false });
+        document.addEventListener("pointerup", endMobilePanelDrag);
+        document.addEventListener("pointercancel", endMobilePanelDrag);
+      });
+    }
+    (function simNavModal() {
+      const openBtn = document.getElementById("simNavOpen");
+      const layer = document.getElementById("simNavLayer");
+      const backdrop = document.getElementById("simNavBackdrop");
+      const closeBtn = document.getElementById("simNavClose");
+      const dialog = document.getElementById("simNavDialog");
+      if (!openBtn || !layer || !dialog) return;
+      function openNav() {
+        layer.removeAttribute("hidden");
+        openBtn.setAttribute("aria-expanded", "true");
+        document.documentElement.style.overflow = "hidden";
+        closeBtn.focus();
+      }
+      function closeNav() {
+        layer.setAttribute("hidden", "");
+        openBtn.setAttribute("aria-expanded", "false");
+        document.documentElement.style.overflow = "";
+        openBtn.focus();
+      }
+      openBtn.addEventListener("click", () => openNav());
+      if (backdrop) backdrop.addEventListener("click", () => closeNav());
+      if (closeBtn) closeBtn.addEventListener("click", () => closeNav());
+      dialog.querySelectorAll(".sim-nav-layer__links a").forEach((a) => {
+        a.addEventListener("click", () => closeNav());
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !layer.hasAttribute("hidden")) closeNav();
+      });
+    })();
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "]" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const tag = e.target && e.target.tagName;
+        if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+        e.preventDefault();
+        setPanelCollapsed(!controlPanel.classList.contains("is-collapsed"));
+      }
+    });
+
+    scene.add(new THREE.AmbientLight(0x1a2030, 0.6));
+    const moon = new THREE.DirectionalLight(0x8899bb, 0.8);
+    moon.position.set(15, 25, 10);
+    moon.castShadow = true;
+    moon.shadow.mapSize.set(1024, 1024);
+    moon.shadow.camera.left = -20;
+    moon.shadow.camera.right = 20;
+    moon.shadow.camera.top = 20;
+    moon.shadow.camera.bottom = -20;
+    scene.add(moon);
+    scene.add(new THREE.PointLight(0x4a7a3a, 0.4, 30, 2).translateY(-1));
+    scene.add(new THREE.DirectionalLight(0x667799, 0.3).position.set(-10, 5, -15));
+
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(50, 64),
+      new THREE.MeshStandardMaterial({ color: 0x1a2a10, roughness: 0.95, metalness: 0 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.05;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const glowMat = new THREE.ShaderMaterial({
+      uniforms: { u_time: { value: 0 } },
+      vertexShader: glowVertexShader,
+      fragmentShader: glowFragmentShader,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const glowDisc = new THREE.Mesh(new THREE.CircleGeometry(10, 64), glowMat);
+    glowDisc.rotation.x = -Math.PI / 2;
+    glowDisc.position.y = -0.03;
+    scene.add(glowDisc);
+
+    const starPos = new Float32Array(500 * 3);
+    for (let i = 0; i < 500; i++) {
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.random() * Math.PI * 0.4 + 0.1;
+      const dist = 80 + Math.random() * 40;
+      starPos[i * 3] = dist * Math.sin(phi) * Math.cos(theta);
+      starPos[i * 3 + 1] = dist * Math.cos(phi);
+      starPos[i * 3 + 2] = dist * Math.sin(phi) * Math.sin(theta);
+    }
+    const stars = new THREE.Points(
+      new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(starPos, 3)),
+      new THREE.PointsMaterial({ color: 0xccccee, size: 0.15, sizeAttenuation: true })
+    );
+    scene.add(stars);
+
+    const bladeGeo = new THREE.BufferGeometry();
+    const verts = new Float32Array([-0.04, 0, 0, 0.04, 0, 0, -0.015, 0.5, 0, 0.015, 0.5, 0, 0, 0.7, 0]);
+    bladeGeo.setAttribute("position", new THREE.BufferAttribute(verts, 3));
+    bladeGeo.setIndex([0, 1, 2, 1, 3, 2, 2, 3, 4]);
+
+    const instGeo = new THREE.InstancedBufferGeometry();
+    instGeo.index = bladeGeo.index;
+    instGeo.setAttribute("position", bladeGeo.getAttribute("position"));
+
+    const offsets = new Float32Array(BLADE_COUNT * 3);
+    const scales = new Float32Array(BLADE_COUNT);
+    const rotations = new Float32Array(BLADE_COUNT);
+    const phases = new Float32Array(BLADE_COUNT);
+    const colours = new Float32Array(BLADE_COUNT * 3);
+    const flattenArr = new Float32Array(BLADE_COUNT);
+    const grassPos = new Float32Array(BLADE_COUNT * 2);
+
+    for (let i = 0; i < BLADE_COUNT; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = Math.sqrt(Math.random()) * FIELD_RADIUS;
+      const x = Math.cos(angle) * dist;
+      const z = Math.sin(angle) * dist;
+      offsets[i * 3] = x;
+      offsets[i * 3 + 1] = 0;
+      offsets[i * 3 + 2] = z;
+      grassPos[i * 2] = x;
+      grassPos[i * 2 + 1] = z;
+      scales[i] = 0.6 + Math.random() * 0.8;
+      rotations[i] = Math.random() * Math.PI * 2;
+      phases[i] = Math.random() * Math.PI * 2;
+      colours[i * 3] = 0.12 + Math.random() * 0.08;
+      colours[i * 3 + 1] = 0.3 + Math.random() * 0.2;
+      colours[i * 3 + 2] = 0.04 + Math.random() * 0.04;
+      flattenArr[i] = 0;
+    }
+
+    instGeo.setAttribute("offset", new THREE.InstancedBufferAttribute(offsets, 3));
+    instGeo.setAttribute("scale", new THREE.InstancedBufferAttribute(scales, 1));
+    instGeo.setAttribute("rotation", new THREE.InstancedBufferAttribute(rotations, 1));
+    instGeo.setAttribute("phase", new THREE.InstancedBufferAttribute(phases, 1));
+    instGeo.setAttribute("bladeColor", new THREE.InstancedBufferAttribute(colours, 3));
+    instGeo.setAttribute("flatten", new THREE.InstancedBufferAttribute(flattenArr, 1));
+
+    const grassUniforms = {
+      u_time: { value: 0 },
+      u_windStrength: { value: 0.3 },
+      u_windFreq: { value: 1.5 },
+    };
+
+    const grassMesh = new THREE.Mesh(
+      instGeo,
+      new THREE.ShaderMaterial({
+        uniforms: grassUniforms,
+        vertexShader: grassVertexShader,
+        fragmentShader: grassFragmentShader,
+        side: THREE.DoubleSide,
+      })
+    );
+    grassMesh.frustumCulled = false;
+    scene.add(grassMesh);
+
+    const flattenAttr = instGeo.getAttribute("flatten");
+    let targetFlatten = computeFlattenMap(grassPos, BLADE_COUNT, FIELD_PATTERNS[0].generate(1.0));
+    let settled = false;
+
+    function setPattern(pat) {
+      targetFlatten = computeFlattenMap(grassPos, BLADE_COUNT, pat.generate(1.0));
+      settled = false;
+      document.getElementById("st-sym").textContent = pat.symmetry;
+      document.getElementById("st-blades").textContent = BLADE_COUNT_EST_FLAT.toLocaleString();
+      document.getElementById("st-name").textContent = pat.name;
+      document.getElementById("st-hz").textContent = String(pat.frequencyHz);
+      document.getElementById("st-mode").textContent = "mode " + pat.chladniMode;
+    }
+
+    const sel = document.getElementById("selector");
+    FIELD_PATTERNS.forEach((pat, idx) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.dataset.id = pat.id;
+      b.textContent = pat.name;
+      if (idx === 0) b.classList.add("active");
+      b.addEventListener("click", () => {
+        sel.querySelectorAll("button").forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+        setPattern(pat);
+      });
+      sel.appendChild(b);
+    });
+    setPattern(FIELD_PATTERNS[0]);
+
+    const clock = new THREE.Clock();
+    function animate() {
+      const dt = clock.getDelta();
+      grassUniforms.u_time.value += dt;
+      glowMat.uniforms.u_time.value += dt;
+
+      if (!settled) {
+        settled = interpolateFlattenMap(flattenArr, targetFlatten, dt, 2.0);
+        flattenAttr.needsUpdate = true;
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    window.addEventListener("resize", scheduleSyncSize);
+    scheduleSyncSize();
+    requestAnimationFrame(scheduleSyncSize);
+  </script>
+</body>
+</html>

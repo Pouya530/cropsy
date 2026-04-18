@@ -1,0 +1,12 @@
+.vercel
+node_modules/
+.env
+.env.*
+!.env.local.example
+.DS_Store
+.next/
+out/
+dist/
+
+# Project docs — keep out of remote per team preference
+*.md

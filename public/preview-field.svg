@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 712 480" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="sky" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" style="stop-color:#2d4a38"/>
+      <stop offset="45%" style="stop-color:#1e3328"/>
+      <stop offset="100%" style="stop-color:#0f1f18"/>
+    </linearGradient>
+    <radialGradient id="hot" cx="48%" cy="42%" r="55%">
+      <stop offset="0%" style="stop-color:#d4c4a8;stop-opacity:0.5"/>
+      <stop offset="70%" style="stop-color:#8b9a7a;stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:transparent"/>
+    </radialGradient>
+  </defs>
+  <rect width="712" height="480" fill="url(#sky)"/>
+  <ellipse cx="356" cy="255" rx="280" ry="120" fill="url(#hot)"/>
+  <g stroke="#a8c4a0" stroke-width="2" opacity="0.45" fill="none">
+    <path d="M356 120c-80 40-140 120-140 200s60 120 140 120 140-40 140-120-60-160-140-200z"/>
+    <path d="M356 160c-55 32-95 88-95 150s40 95 95 95 95-35 95-95-40-118-95-150z"/>
+  </g>
+  <g stroke="#c9b896" stroke-width="5" stroke-linecap="round" opacity="0.65" fill="none">
+    <path d="M356 195 Q420 235 400 290 Q360 320 312 290 Q292 235 356 195"/>
+  </g>
+</svg>

@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script>
+    try {
+      if (localStorage.getItem("cropsySimTheme") === "dark") document.documentElement.removeAttribute("data-theme");
+      else document.documentElement.dataset.theme = "light";
+    } catch (e) {
+      document.documentElement.dataset.theme = "light";
+    }
+  </script>
+  <title>Cropsy — Grass field formation designer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #060a08; font-family: "DM Sans", system-ui, sans-serif; }
+    .app-shell { display: flex; flex-direction: column; height: 100%; color: #f5faf6; }
+    .app-header {
+      flex: 0 0 auto; max-height: none; min-height: 40px;
+      display: flex; align-items: center; justify-content: flex-start; flex-wrap: nowrap; gap: 12px;
+      padding: 0 14px 0 16px;
+      background: rgba(4, 14, 10, 0.88); border-bottom: 1px solid rgba(18, 144, 121, 0.2);
+      z-index: 5;
+    }
+    .brand { display: flex; align-items: baseline; gap: 10px; flex-shrink: 0; min-width: 0; }
+    a.brand { text-decoration: none; color: inherit; cursor: pointer; }
+    a.brand:focus-visible { outline: 2px solid #129079; outline-offset: 3px; border-radius: 4px; }
+    .brand-mark { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #129079; }
+    .brand-title { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; color: #f0faf4; }
+    .header-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+      flex-shrink: 0;
+      min-width: 0;
+    }
+    @media (min-width: 1024px) {
+      .header-toolbar {
+        flex: 1;
+        justify-content: flex-end;
+      }
+      .header-toolbar .header-nav {
+        flex: 1 1 auto;
+        justify-content: flex-end;
+        margin-left: 0;
+        min-width: 0;
+      }
+    }
+    .header-nav {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+      justify-content: flex-end; flex: 0 1 auto; min-width: 0;
+    }
+    .sim-nav-trigger {
+      display: none;
+      font-family: inherit;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid rgba(18, 144, 121, 0.45);
+      background: rgba(18, 144, 121, 0.18);
+      color: #7ad4bb;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .sim-nav-trigger:hover {
+      background: rgba(233, 30, 99, 0.2);
+      border-color: rgba(233, 30, 99, 0.45);
+      color: #ffb3d0;
+    }
+    .sim-nav-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px))
+        max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+    }
+    .sim-nav-layer[hidden] {
+      display: none !important;
+    }
+    .sim-nav-layer__backdrop {
+      position: absolute;
+      inset: 0;
+      border: none;
+      padding: 0;
+      margin: 0;
+      background: rgba(0, 0, 0, 0.52);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      cursor: pointer;
+    }
+    .sim-nav-layer__dialog {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 320px;
+      max-height: min(420px, 85vh);
+      overflow: auto;
+      background: rgba(6, 18, 12, 0.97);
+      border: 1px solid rgba(18, 144, 121, 0.38);
+      border-radius: 14px;
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55);
+      padding: 12px 14px 16px;
+    }
+    .sim-nav-layer__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(18, 144, 121, 0.22);
+    }
+    .sim-nav-layer__title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #129079;
+    }
+    .sim-nav-layer__close {
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(233, 30, 99, 0.18);
+      color: #f5faf6;
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .sim-nav-layer__close:hover {
+      background: rgba(233, 30, 99, 0.32);
+    }
+    .sim-nav-layer__links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sim-nav-layer__links a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: #129079;
+      background: rgba(18, 144, 121, 0.12);
+      border: 1px solid rgba(18, 144, 121, 0.35);
+    }
+    .sim-nav-layer__links a:hover {
+      background: rgba(233, 30, 99, 0.18);
+      border-color: rgba(233, 30, 99, 0.45);
+      color: #ffb3d0;
+    }
+    .sim-nav-layer__links a[aria-current="page"] {
+      background: rgba(233, 30, 99, 0.25);
+      border-color: rgba(233, 30, 99, 0.55);
+      color: #fff;
+    }
+    .header-nav a {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #129079; text-decoration: none; white-space: nowrap;
+    }
+    .header-nav a:hover { color: #E91E63; }
+    .header-nav a[aria-current="page"] {
+      color: #f0faf4;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-color: rgba(233, 30, 99, 0.65);
+    }
+    .header-actions { flex-shrink: 0; margin-left: 0; display: flex; align-items: center; gap: 12px; }
+    .header-actions button {
+      font-size: 14px; line-height: 1; padding: 6px 10px; border-radius: 6px;
+      border: 1px solid rgba(233, 30, 99, 0.35); background: rgba(18, 144, 121, 0.2); color: #e8fff4; cursor: pointer;
+    }
+    .header-actions button[aria-pressed="true"] { background: rgba(233, 30, 99, 0.35); border-color: #E91E63; }
+    .main-stage { flex: 1; display: flex; min-height: 0; position: relative; }
+    .canvas-shell {
+      flex: 1; min-width: 0; position: relative; background: #0a120e;
+    }
+    #canvas { display: block; width: 100%; height: 100%; touch-action: none; vertical-align: middle; }
+    .transport-overlay {
+      position: absolute; bottom: 0; left: 0; right: 0; min-height: 44px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+      padding: 10px 16px; z-index: 10;
+      background: transparent;
+      border-top: none;
+      transition: opacity 0.35s ease;
+    }
+    .transport-overlay.hidden { opacity: 0; pointer-events: none; }
+    .transport-hint {
+      font-size: 11px; font-weight: 500; color: rgba(245, 250, 246, 0.92); letter-spacing: 0.04em;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75), 0 0 12px rgba(0, 0, 0, 0.45);
+    }
+    .transport-badge {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(144, 202, 249, 0.95);
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+      text-decoration: none;
+    }
+    .transport-badge:hover {
+      color: #fff;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .transport-badge:focus-visible {
+      outline: 2px solid rgba(144, 202, 249, 0.85);
+      outline-offset: 3px;
+      border-radius: 2px;
+    }
+    .control-panel {
+      --panel-w: 280px;
+      --panel-mobile-h: min(46vh, 360px);
+      position: relative; flex: 0 0 var(--panel-w); width: var(--panel-w); max-width: min(var(--panel-w), 100%);
+      display: flex; flex-direction: column;
+      background: rgba(6, 18, 12, 0.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border-left: 1px solid rgba(18, 144, 121, 0.22);
+      box-shadow: -8px 0 32px rgba(0, 0, 0, 0.35);
+      /* No width/flex transition: animated panel width desyncs Three.js aspect from the canvas shell. */
+    }
+    .control-panel.is-panel-drag { transition: none !important; }
+    .control-panel.is-collapsed { flex-basis: 44px; width: 44px; min-width: 44px; }
+    .control-panel.is-collapsed .panel-scroll,
+    .control-panel.is-collapsed .panel-resize-handle { display: none; }
+    .panel-collapse-edge {
+      position: absolute; left: 0; top: 50%; transform: translateY(-50%); z-index: 3;
+      width: 22px; height: 48px; margin-left: -11px; padding: 0; border-radius: 8px 0 0 8px;
+      border: 1px solid rgba(233, 30, 99, 0.35); border-right: none;
+      background: rgba(8, 22, 16, 0.95); color: #e8fff4; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; line-height: 0;
+    }
+    .panel-collapse-edge__chev {
+      display: block; width: 0; height: 0; border-style: solid;
+      border-width: 5px 6px 5px 0;
+      border-color: transparent currentColor transparent transparent;
+      flex-shrink: 0; transition: transform 0.2s ease;
+    }
+    .control-panel.is-collapsed .panel-collapse-edge__chev { transform: rotate(180deg); }
+    .panel-collapse-edge:hover { background: rgba(233, 30, 99, 0.25); }
+    @media (min-width: 1024px) {
+      .control-panel { --panel-w: 256px; }
+      .panel-collapse-edge {
+        width: 20px; height: 44px;
+        margin-left: -15px;
+        border-radius: 10px 0 0 10px;
+        background: rgba(8, 22, 16, 0.96);
+        color: #e8fff4;
+        border: 1px solid rgba(233, 30, 99, 0.4);
+        border-right: none;
+        box-shadow: none;
+      }
+      .panel-collapse-edge:hover {
+        background: rgba(12, 38, 28, 0.98);
+        border-color: rgba(90, 200, 175, 0.45);
+      }
+      .panel-collapse-edge:focus-visible {
+        outline: 2px solid rgba(233, 30, 99, 0.55);
+        outline-offset: 2px;
+      }
+      /* Chevron: points right when expanded (initial load); left when collapsed strip. */
+      .panel-collapse-edge__chev {
+        transform-origin: center;
+        border-width: 5px 0 5px 6px;
+        border-color: transparent transparent transparent currentColor;
+        transform: none;
+      }
+      .control-panel.is-collapsed .panel-collapse-edge__chev {
+        transform: rotate(180deg);
+      }
+    }
+    .panel-resize-handle {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 2;
+      margin-left: -3px;
+    }
+    .panel-resize-handle:hover { background: rgba(233, 30, 99, 0.15); }
+    .panel-mobile-resize {
+      display: none;
+    }
+    .panel-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      width: 100%;
+      min-width: 0;
+      padding: 14px 14px 20px 18px;
+      scrollbar-gutter: stable;
+      scrollbar-color: rgba(233, 30, 99, 0.45) rgba(0, 0, 0, 0.2);
+    }
+    .acc {
+      border: 1px solid rgba(18, 144, 121, 0.2); border-radius: 10px; margin-bottom: 10px;
+      background: rgba(0, 0, 0, 0.18); overflow: hidden;
+    }
+    .acc summary {
+      list-style: none; cursor: pointer; padding: 10px 12px; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase; color: #7a9a8a;
+      display: flex; align-items: center; justify-content: space-between; user-select: none;
+    }
+    .acc summary::-webkit-details-marker { display: none; }
+    .acc summary::after { content: "\25BE"; font-size: 10px; opacity: 0.6; transition: transform 0.2s; }
+    .acc:not([open]) summary::after { transform: rotate(-90deg); }
+    .acc .acc-body { padding: 0 12px 12px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+    .panel-lede { margin: 0 0 10px; font-size: 12px; font-weight: 400; line-height: 1.5; color: rgba(245, 250, 246, 0.82); }
+    .panel-lede-short { margin: 0 0 8px; font-size: 11px; line-height: 1.45; color: rgba(245, 250, 246, 0.72); }
+    .legend-svg { display: block; margin: 8px auto; max-width: 200px; opacity: 0.92; }
+    .presets {
+      display: flex; flex-wrap: wrap; gap: 7px; margin-top: 6px;
+      max-height: 36vh; overflow-y: auto; padding-right: 2px;
+      scrollbar-color: rgba(233,30,99,0.45) rgba(0,0,0,0.2);
+    }
+    .presets button {
+      font-family: inherit; font-size: 9px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+      padding: 7px 9px; border-radius: 6px; border: 1px solid rgba(233,30,99,0.35);
+      background: rgba(18,144,121,0.18); color: #e8fff4; cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+    .presets button:hover { background: rgba(233,30,99,0.22); border-color: rgba(233,30,99,0.55); color: #fff; }
+    .presets button.active { background: rgba(233,30,99,0.38); border-color: #E91E63; color: #fff; }
+    .panel-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: #7a9a8a; margin: 12px 0 6px; }
+    .panel-title:first-child { margin-top: 0; }
+    .row { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; margin-top: 4px; }
+    .row label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #8a9a92; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .row .val { font-size: 10px; color: #a8c4b8; font-weight: 500; letter-spacing: 0.04em; }
+    .apply-row { display: flex; flex-wrap: wrap; align-items: center; margin-top: 10px; gap: 10px; }
+    .apply-row button {
+      font-family: inherit; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(18,144,121,0.5);
+      background: rgba(18,144,121,0.35); color: #e8fff4; cursor: pointer;
+    }
+    .apply-row button:hover { background: rgba(233,30,99,0.25); border-color: rgba(233,30,99,0.45); }
+    .apply-hint { font-size: 10px; color: rgba(245,250,246,0.5); max-width: 36ch; line-height: 1.4; }
+    .doc-link { margin-top: 8px; font-size: 11px; }
+    .doc-link a { color: #64b5f6; }
+    .badge { display: inline-block; font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 7px; border-radius: 4px; background: rgba(100,181,246,0.15); color: #90caf9; }
+    /* Focus mode hides panel for a clean frame; not persisted — settings return after reload. */
+    .app-shell.focus-mode .control-panel { display: none !important; }
+    .app-shell.focus-mode .main-stage { flex: 1; }
+    .focus-mode-banner {
+      display: none;
+      position: fixed;
+      bottom: 52px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: rgba(8, 22, 16, 0.92);
+      border: 1px solid rgba(233, 30, 99, 0.45);
+      color: #f5faf6;
+      pointer-events: none;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    }
+    .app-shell.focus-mode .focus-mode-banner { display: block; }
+    select#density {
+      font: inherit; padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(233,30,99,0.35);
+      background: #0d1a14; color: #e8fff4; max-width: 100%;
+    }
+    /* Narrow phones: burger menu. Z Fold inner & tablet widths (640–1023px): keep inline header links. */
+    @media (max-width: 639px) {
+      .app-header {
+        flex-wrap: wrap;
+        padding: 10px 12px 12px;
+        align-items: center;
+        row-gap: 0;
+      }
+      .brand { flex: 1 1 auto; min-width: 0; order: 1; }
+      .header-toolbar { order: 2; margin-left: auto; flex: 0 0 auto; }
+      .sim-nav-trigger { display: inline-flex; }
+      .header-toolbar .header-nav {
+        display: none !important;
+      }
+    }
+    @media (max-width: 1023px) {
+      .main-stage { flex-direction: column; }
+      .canvas-shell { flex: 1; min-height: 42vh; }
+      .control-panel {
+        flex: 0 0 auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: var(--panel-mobile-h, min(46vh, 360px));
+        max-height: var(--panel-mobile-h, min(46vh, 360px));
+        min-height: 180px;
+        border-left: none; border-top: 1px solid rgba(18, 144, 121, 0.25);
+        border-radius: 14px 14px 0 0; box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+      }
+      .control-panel.is-collapsed {
+        height: auto !important;
+        max-height: 52px !important;
+        min-height: 0;
+      }
+      .panel-resize-handle { display: none; }
+      .panel-mobile-resize {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        min-height: 44px;
+        margin: 2px 12px 0;
+        padding: 0;
+        border-radius: 999px;
+        cursor: ns-resize;
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+        background: transparent;
+        position: relative;
+        z-index: 2;
+        overscroll-behavior: none;
+      }
+      .panel-mobile-resize::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 44px;
+        height: 5px;
+        border-radius: 3px;
+        background: rgba(18, 144, 121, 0.55);
+      }
+      .panel-mobile-resize:hover::after {
+        background: rgba(233, 30, 99, 0.55);
+      }
+      .panel-scroll {
+        padding-left: max(14px, env(safe-area-inset-left, 0px));
+        padding-right: max(14px, env(safe-area-inset-right, 0px));
+        padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+      }
+      /* No collapse control on mobile — panel stays full height; use ] shortcut if needed. */
+      .panel-collapse-edge { display: none !important; }
+      .control-panel.is-collapsed .panel-mobile-resize { display: none; }
+    }
+    /*
+     * Samsung Galaxy Z Fold 4 (and similar): cover (~347px wide) + inner landscape (wide + short).
+     * Default mobile stack + overflow:hidden on body can clip the panel or fail to composite it.
+     */
+    @media (max-width: 1023px) and (min-width: 660px) and (max-height: 620px),
+      (max-width: 420px) and (min-width: 300px) and (min-height: 600px) {
+      .main-stage {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
+      }
+      .canvas-shell {
+        min-height: min(34vh, 200px) !important;
+        flex: 1 0 auto;
+        position: relative;
+        z-index: 1;
+      }
+      .control-panel {
+        flex-shrink: 0;
+        position: relative;
+        z-index: 6;
+        isolation: isolate;
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+        background: rgba(6, 18, 12, 0.97) !important;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="/sim-theme.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <a class="brand" href="/" aria-label="Cropsy — home">
+        <span class="brand-mark">Cropsy</span>
+        <span class="brand-title">Grass field designer</span>
+      </a>
+      <div class="header-toolbar">
+        <button
+          type="button"
+          class="sim-nav-trigger"
+          id="simNavOpen"
+          aria-expanded="false"
+          aria-controls="simNavDialog"
+          aria-haspopup="dialog"
+          aria-label="Open site menu"
+        >
+          Menu
+        </button>
+        <nav class="header-nav" aria-label="Site links">
+          <a href="/">Home</a>
+          <a href="/grass-crop-circle.html" aria-current="page">Grass designer</a>
+          <a href="/demo/">Cymatics plate</a>
+          <a href="/field.html">Field preview</a>
+          <a href="/crop-circle-3d.html">Rings 3D</a>
+        </nav>
+        <div class="header-actions">
+          <button type="button" id="themeToggle" class="sim-theme-toggle">&#x2600;</button>
+          <button type="button" id="focusToggle" aria-pressed="false" title="Focus mode — full-width scene (hides controls; click again to show)">&#x25E7;</button>
+        </div>
+      </div>
+    </header>
+    <div id="simNavLayer" class="sim-nav-layer" hidden>
+      <button type="button" class="sim-nav-layer__backdrop" id="simNavBackdrop" tabindex="-1" aria-label="Close menu"></button>
+      <div class="sim-nav-layer__dialog" id="simNavDialog" role="dialog" aria-modal="true" aria-labelledby="simNavTitle" tabindex="-1">
+        <div class="sim-nav-layer__head">
+          <span class="sim-nav-layer__title" id="simNavTitle">Cropsy</span>
+          <button type="button" class="sim-nav-layer__close" id="simNavClose" aria-label="Close menu">&times;</button>
+        </div>
+        <nav class="sim-nav-layer__links" aria-label="Site links">
+          <a href="/">Home</a>
+          <a href="/grass-crop-circle.html" aria-current="page">Grass designer</a>
+          <a href="/demo/">Cymatics plate</a>
+          <a href="/field.html">Field preview</a>
+          <a href="/crop-circle-3d.html">Rings 3D</a>
+        </nav>
+      </div>
+    </div>
+    <div class="focus-mode-banner" role="status" aria-live="polite">Settings hidden — press the focus button in the header to show the panel</div>
+    <div class="main-stage">
+      <div class="canvas-shell" id="canvasShell">
+        <canvas id="canvas" aria-label="Grass field formation preview"></canvas>
+        <div class="transport-overlay" id="transportOverlay" role="status">
+          <span class="transport-hint">Drag to orbit · scroll to zoom · tweak formation in the panel</span>
+          <a
+            class="transport-badge"
+            href="https://nocturnal.cloud"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="https://nocturnal.cloud"
+            aria-label="Built by Nocturnal Labs — nocturnal.cloud (opens in a new tab)"
+            >Built by Nocturnal Labs</a>
+        </div>
+      </div>
+      <aside class="control-panel" id="controlPanel">
+        <button type="button" class="panel-collapse-edge" id="panelCollapse" aria-expanded="true" title="Collapse or expand panel (shortcut ])"><span class="panel-collapse-edge__chev" aria-hidden="true"></span></button>
+        <div class="panel-resize-handle" id="panelResize" aria-hidden="true"></div>
+        <div
+          class="panel-mobile-resize"
+          id="panelMobileResize"
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Drag to resize panel height"
+        ></div>
+        <div class="panel-scroll">
+          <details class="acc" id="acc-formation">
+            <summary>Formation</summary>
+            <div class="acc-body">
+              <p class="panel-lede-short">Pick a base layout for your design — preset order follows <strong>crop-catelog.md</strong> §1–48, then extras. Shared with the aerial rings preview. Blades flatten and change colour along each path.</p>
+              <span class="badge">Design-time only</span>
+              <div class="presets" id="presets" role="group" aria-label="Formation presets for designers"></div>
+            </div>
+          </details>
+          <details class="acc" id="acc-grass">
+            <summary>Grass &amp; wind</summary>
+            <div class="acc-body">
+              <svg class="legend-svg" viewBox="0 0 200 72" aria-hidden="true">
+                <text x="100" y="12" text-anchor="middle" fill="#7a9a8a" font-size="9" font-family="DM Sans, sans-serif" letter-spacing="0.08em">STANDING VS LAID</text>
+                <line x1="30" y1="52" x2="30" y2="28" stroke="#2d5a3d" stroke-width="3" stroke-linecap="round"/>
+                <text x="30" y="66" text-anchor="middle" fill="#a8c4b8" font-size="8">Standing</text>
+                <path d="M 130 50 Q 150 38 170 46" fill="none" stroke="#6b7340" stroke-width="3" stroke-linecap="round"/>
+                <text x="150" y="66" text-anchor="middle" fill="#a8c4b8" font-size="8">Laid / straw</text>
+              </svg>
+              <div class="row">
+                <label>Blade density <span class="val" id="densityLabel">52k</span>
+                  <select id="density">
+                    <option value="14000">14000 (lighter)</option>
+                    <option value="28000">28 000 (balanced)</option>
+                    <option value="40000">40 000 (dense)</option>
+                    <option value="52000" selected>52 000 (max detail)</option>
+                  </select>
+                </label>
+                <label>Blade height <span class="val" id="heightLabel">1.25</span>
+                  <input type="range" id="bladeHeight" min="0.55" max="1.45" step="0.02" value="1.25" />
+                </label>
+                <label>Blade width <span class="val" id="widthLabel">0.65</span>
+                  <input type="range" id="bladeWidth" min="0.65" max="1.35" step="0.02" value="0.65" />
+                </label>
+              </div>
+              <div class="apply-row">
+                <button type="button" id="applyDensity">Rebuild field</button>
+                <span class="apply-hint">Rebuild after changing density (blade positions reshuffle).</span>
+              </div>
+            </div>
+          </details>
+          <details class="acc" id="acc-pattern">
+            <summary>Pattern sampling</summary>
+            <div class="acc-body">
+              <div class="row">
+                <label>Path width <span class="val" id="pathLabel">0.70</span>
+                  <input type="range" id="pathWidth" min="0.7" max="2.4" step="0.05" value="0.7" />
+                </label>
+                <label>Pattern scale <span class="val" id="scaleLabel">0.79</span>
+                  <input type="range" id="patternScale" min="0.65" max="1.35" step="0.02" value="0.79" />
+                </label>
+                <label>Blend speed <span class="val" id="blendLabel">1.7</span>
+                  <input type="range" id="blendSpeed" min="0.8" max="6" step="0.1" value="1.7" />
+                </label>
+              </div>
+            </div>
+          </details>
+          <details class="acc" id="acc-atmosphere">
+            <summary>Atmosphere</summary>
+            <div class="acc-body">
+              <div class="row">
+                <label>Wind strength <span class="val" id="windLabel">0.00</span>
+                  <input type="range" id="wind" min="0" max="2.4" step="0.05" value="0" />
+                </label>
+                <label>Wind frequency <span class="val" id="windFreqLabel">2.80</span>
+                  <input type="range" id="windFreq" min="0.6" max="2.8" step="0.05" value="2.8" />
+                </label>
+                <label>Flatten intensity <span class="val" id="flatLabel">0.45</span>
+                  <input type="range" id="flatInt" min="0.45" max="1.15" step="0.02" value="0.45" />
+                </label>
+              </div>
+            </div>
+          </details>
+          <details class="acc" id="acc-about">
+            <summary>About this preview</summary>
+            <div class="acc-body">
+              <p class="panel-lede">
+                For crop circle designers: circles, arcs, lines, and polygons drive how each blade is laid. Use path width and pattern scale to match how bold you want trampled corridors to read from above. This is a planning visualisation — not photogrammetry of a real field.
+              </p>
+              <p class="doc-link"><a href="/field.html">Alternate field preview</a></p>
+            </div>
+          </details>
+        </div>
+      </aside>
+    </div>
+  </div>
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+    import { FIELD_PATTERNS_CORE as FIELD_PATTERNS } from "/crop-field-patterns.mjs";
+    import { initSimTheme } from "/sim-theme.mjs";
+
+    /** SPEC-3D-FIELD: line widths for distance-to-edge flatten (world units). */
+    const LINE_WIDTHS = { circle: 0.35, line: 0.25, polygon: 0.3, arc: 0.3 };
+
+    function computeShapeDistance(gx, gz, shape, widthMul) {
+      const lineWidth = LINE_WIDTHS[shape.type] * widthMul;
+      switch (shape.type) {
+        case "circle": {
+          const dx = gx - shape.cx;
+          const dz = gz - shape.cz;
+          const dist = Math.sqrt(dx * dx + dz * dz);
+          const ringDist = Math.abs(dist - shape.r);
+          if (ringDist < lineWidth) return (1.0 - ringDist / lineWidth) * shape.flatten;
+          return 0;
+        }
+        case "line": {
+          const lx = shape.x2 - shape.x1;
+          const lz = shape.z2 - shape.z1;
+          const len = Math.sqrt(lx * lx + lz * lz);
+          if (len < 0.01) return 0;
+          const t = Math.max(0, Math.min(1, ((gx - shape.x1) * lx + (gz - shape.z1) * lz) / (len * len)));
+          const px = shape.x1 + t * lx;
+          const pz = shape.z1 + t * lz;
+          const dist = Math.sqrt((gx - px) ** 2 + (gz - pz) ** 2);
+          if (dist < lineWidth) return (1.0 - dist / lineWidth) * shape.flatten;
+          return 0;
+        }
+        case "polygon": {
+          let maxF = 0;
+          for (let s = 0; s < shape.sides; s++) {
+            const a1 = (s / shape.sides) * Math.PI * 2 + shape.offset;
+            const a2 = ((s + 1) / shape.sides) * Math.PI * 2 + shape.offset;
+            const x1 = shape.r * Math.cos(a1), z1 = shape.r * Math.sin(a1);
+            const x2 = shape.r * Math.cos(a2), z2 = shape.r * Math.sin(a2);
+            const lxx = x2 - x1, lzz = z2 - z1;
+            const llen = Math.sqrt(lxx * lxx + lzz * lzz);
+            const tt = Math.max(0, Math.min(1, ((gx - x1) * lxx + (gz - z1) * lzz) / (llen * llen)));
+            const ppx = x1 + tt * lxx, ppz = z1 + tt * lzz;
+            const ddist = Math.sqrt((gx - ppx) ** 2 + (gz - ppz) ** 2);
+            if (ddist < lineWidth) maxF = Math.max(maxF, (1.0 - ddist / lineWidth) * shape.flatten);
+          }
+          return maxF;
+        }
+        case "arc": {
+          const dx = gx - shape.cx;
+          const dz = gz - shape.cz;
+          const dist = Math.sqrt(dx * dx + dz * dz);
+          const ringDist = Math.abs(dist - shape.r);
+          let angle = Math.atan2(dz, dx);
+          if (angle < 0) angle += Math.PI * 2;
+          let start = ((shape.startAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+          let end = ((shape.endAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+          const inArc = start <= end ? angle >= start && angle <= end : angle >= start || angle <= end;
+          if (ringDist < lineWidth && inArc) return (1.0 - ringDist / lineWidth) * shape.flatten;
+          return 0;
+        }
+        default:
+          return 0;
+      }
+    }
+
+    function computeFlattenMap(grassPositions, bladeCount, shapes, widthMul, patternScale) {
+      const map = new Float32Array(bladeCount);
+      for (let i = 0; i < bladeCount; i++) {
+        const gx = grassPositions[i * 2] * patternScale;
+        const gz = grassPositions[i * 2 + 1] * patternScale;
+        let maxFlatten = 0;
+        for (const shape of shapes) {
+          const f = computeShapeDistance(gx, gz, shape, widthMul);
+          if (f > maxFlatten) maxFlatten = f;
+        }
+        map[i] = Math.min(1.0, maxFlatten);
+      }
+      return map;
+    }
+
+    function interpolateFlattenMap(current, target, delta, speed) {
+      const step = Math.min(1.0, delta * speed);
+      for (let i = 0; i < current.length; i++) {
+        const diff = target[i] - current[i];
+        current[i] += diff * step;
+      }
+    }
+
+    const canvas = document.getElementById("canvas");
+    const STRAW = new THREE.Color(0x5c6234);
+    const FIELD_MAX_R = 11.6;
+    /** Matches `CircleGeometry` below — ortho frustum fits this disk edge-to-edge. */
+    const GROUND_DISK_R = 14.2;
+    const VIEW_PAD = 1.02;
+
+    let design = 0;
+    let bladeCount = 52000;
+    let pathWidthMul = 0.7;
+    let patternScale = 0.79;
+    let blendSpeed = 1.7;
+    let windVal = 0;
+    let windFreq = 2.8;
+    let flatIntensity = 0.45;
+    let bladeHeightMul = 1.25;
+    let bladeWidthMul = 0.65;
+
+    let grassPositions = new Float32Array(bladeCount * 2);
+    let currentFlatten = new Float32Array(bladeCount);
+    let targetFlatten = new Float32Array(bladeCount);
+
+    function regrowTarget() {
+      const shapes = FIELD_PATTERNS[design].generate(1.0);
+      targetFlatten = computeFlattenMap(grassPositions, bladeCount, shapes, pathWidthMul, patternScale);
+    }
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x87a878, 1);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.02;
+
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.35, 320);
+    camera.up.set(0, 1, 0);
+    camera.zoom = 1;
+    /* True plan view: straight down +Y; tiny polar slack keeps OrbitControls stable. */
+    camera.position.set(0, 96, 0);
+    camera.lookAt(0, 0, 0);
+
+    const controls = new OrbitControls(camera, canvas);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.minPolarAngle = 0;
+    controls.maxPolarAngle = Math.PI / 2 - 0.12;
+    controls.minDistance = 2.5;
+    controls.maxDistance = 180;
+    controls.minZoom = 0.45;
+    controls.maxZoom = 5.5;
+    controls.target.set(0, 0, 0);
+    controls.autoRotate = false;
+    controls.update();
+
+    const canvasShell = document.getElementById("canvasShell");
+    const controlPanel = document.getElementById("controlPanel");
+    const appShell = document.querySelector(".app-shell");
+
+    function syncSize() {
+      const rect = canvasShell.getBoundingClientRect();
+      const w = Math.max(1, Math.round(rect.width));
+      const h = Math.max(1, Math.round(rect.height));
+      const aspect = w / h;
+      const R = GROUND_DISK_R * VIEW_PAD;
+      const frustumSize = 2 * R;
+      if (aspect >= 1) {
+        camera.left = (-0.5 * frustumSize * aspect);
+        camera.right = 0.5 * frustumSize * aspect;
+        camera.top = 0.5 * frustumSize;
+        camera.bottom = -0.5 * frustumSize;
+      } else {
+        camera.left = -0.5 * frustumSize;
+        camera.right = 0.5 * frustumSize;
+        camera.top = 0.5 * frustumSize / aspect;
+        camera.bottom = -0.5 * frustumSize / aspect;
+      }
+      camera.zoom = 1;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h, false);
+    }
+
+    let syncSizeRaf = 0;
+    function scheduleSyncSize() {
+      cancelAnimationFrame(syncSizeRaf);
+      syncSizeRaf = requestAnimationFrame(() => {
+        syncSizeRaf = 0;
+        syncSize();
+      });
+    }
+
+    const shellResizeObserver = new ResizeObserver(() => scheduleSyncSize());
+    shellResizeObserver.observe(canvasShell);
+
+    const transportOverlay = document.getElementById("transportOverlay");
+    const TRANSPORT_HIDE_MS = 3200;
+    let transportTimer = 0;
+    function pokeTransport() {
+      transportOverlay.classList.remove("hidden");
+      clearTimeout(transportTimer);
+      transportTimer = setTimeout(() => transportOverlay.classList.add("hidden"), TRANSPORT_HIDE_MS);
+    }
+    canvasShell.addEventListener("mousemove", pokeTransport);
+    canvasShell.addEventListener("touchstart", pokeTransport, { passive: true });
+    pokeTransport();
+
+    const LS_PANEL = "grassCropPanelW";
+    const LS_COLLAPSED = "grassCropPanelCollapsed";
+    const savedW = localStorage.getItem(LS_PANEL);
+    /* Focus mode used to persist and hid the whole panel — clear legacy key so settings stay visible. */
+    localStorage.removeItem("grassCropFocus");
+    if (savedW) {
+      const n = parseInt(savedW, 10);
+      if (n >= 240 && n <= 400) controlPanel.style.setProperty("--panel-w", `${n}px`);
+    }
+
+    function setPanelCollapsed(collapsed) {
+      controlPanel.classList.toggle("is-collapsed", collapsed);
+      document.getElementById("panelCollapse").setAttribute("aria-expanded", String(!collapsed));
+      localStorage.setItem(LS_COLLAPSED, collapsed ? "1" : "0");
+      scheduleSyncSize();
+    }
+
+    document.getElementById("panelCollapse").addEventListener("click", () => {
+      setPanelCollapsed(!controlPanel.classList.contains("is-collapsed"));
+    });
+
+    let resizeActive = false;
+    document.getElementById("panelResize").addEventListener("mousedown", (e) => {
+      if (window.matchMedia("(max-width: 1023px)").matches) return;
+      resizeActive = true;
+      controlPanel.classList.add("is-panel-drag");
+      e.preventDefault();
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!resizeActive) return;
+      const newW = Math.min(400, Math.max(240, window.innerWidth - e.clientX));
+      controlPanel.style.setProperty("--panel-w", `${newW}px`);
+      localStorage.setItem(LS_PANEL, String(Math.round(newW)));
+      scheduleSyncSize();
+    });
+    window.addEventListener("mouseup", () => {
+      if (resizeActive) {
+        resizeActive = false;
+        controlPanel.classList.remove("is-panel-drag");
+        scheduleSyncSize();
+      }
+    });
+
+    function setFocusMode(on) {
+      appShell.classList.toggle("focus-mode", on);
+      document.getElementById("focusToggle").setAttribute("aria-pressed", String(on));
+      scheduleSyncSize();
+    }
+    document.getElementById("focusToggle").addEventListener("click", () =>
+      setFocusMode(!appShell.classList.contains("focus-mode"))
+    );
+    const mqMobilePanel = window.matchMedia("(max-width: 1023px)");
+    /* Desktop only: honour saved strip-collapsed state. Mobile always starts with full panel in view. */
+    if (!mqMobilePanel.matches && localStorage.getItem(LS_COLLAPSED) === "1") setPanelCollapsed(true);
+
+    const DESKTOP_EXPAND_ACC_IDS = ["acc-formation", "acc-grass", "acc-pattern", "acc-atmosphere"];
+    function syncDesktopAccordionOpenState() {
+      const narrow = mqMobilePanel.matches;
+      DESKTOP_EXPAND_ACC_IDS.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (narrow) el.removeAttribute("open");
+        else el.setAttribute("open", "");
+      });
+    }
+    syncDesktopAccordionOpenState();
+    mqMobilePanel.addEventListener("change", syncDesktopAccordionOpenState);
+
+    const LS_PANEL_MOBILE_H = "grassCropPanelMobileH";
+    const panelMobileResize = document.getElementById("panelMobileResize");
+    function applyMobilePanelHeight(px) {
+      if (!mqMobilePanel.matches) return;
+      const vh = window.innerHeight;
+      const h = Math.round(Math.max(200, Math.min(px, vh * 0.88)));
+      controlPanel.style.setProperty("--panel-mobile-h", `${h}px`);
+      localStorage.setItem(LS_PANEL_MOBILE_H, String(h));
+    }
+    function initMobilePanelHeight() {
+      if (!mqMobilePanel.matches) return;
+      const raw = localStorage.getItem(LS_PANEL_MOBILE_H);
+      const vh = window.innerHeight;
+      const def = Math.min(Math.round(vh * 0.46), 420);
+      const parsed = raw ? parseInt(raw, 10) : NaN;
+      applyMobilePanelHeight(Number.isFinite(parsed) ? parsed : def);
+    }
+    initMobilePanelHeight();
+    window.addEventListener("resize", () => {
+      if (mqMobilePanel.matches) initMobilePanelHeight();
+    });
+
+    let mobilePanelDrag = false;
+    let mobilePanelStartY = 0;
+    let mobilePanelStartH = 0;
+    if (panelMobileResize) {
+      function onMobilePanelPointerMove(e) {
+        if (!mobilePanelDrag) return;
+        e.preventDefault();
+        const dy = e.clientY - mobilePanelStartY;
+        applyMobilePanelHeight(mobilePanelStartH - dy);
+        scheduleSyncSize();
+      }
+      function endMobilePanelDrag() {
+        if (!mobilePanelDrag) return;
+        mobilePanelDrag = false;
+        document.removeEventListener("pointermove", onMobilePanelPointerMove);
+        document.removeEventListener("pointerup", endMobilePanelDrag);
+        document.removeEventListener("pointercancel", endMobilePanelDrag);
+        scheduleSyncSize();
+      }
+      panelMobileResize.addEventListener("pointerdown", (e) => {
+        if (!mqMobilePanel.matches || controlPanel.classList.contains("is-collapsed")) return;
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        mobilePanelDrag = true;
+        mobilePanelStartY = e.clientY;
+        mobilePanelStartH = controlPanel.getBoundingClientRect().height;
+        document.addEventListener("pointermove", onMobilePanelPointerMove, { passive: false });
+        document.addEventListener("pointerup", endMobilePanelDrag);
+        document.addEventListener("pointercancel", endMobilePanelDrag);
+      });
+    }
+
+    (function simNavModal() {
+      const openBtn = document.getElementById("simNavOpen");
+      const layer = document.getElementById("simNavLayer");
+      const backdrop = document.getElementById("simNavBackdrop");
+      const closeBtn = document.getElementById("simNavClose");
+      const dialog = document.getElementById("simNavDialog");
+      if (!openBtn || !layer || !dialog) return;
+      function openNav() {
+        layer.removeAttribute("hidden");
+        openBtn.setAttribute("aria-expanded", "true");
+        document.documentElement.style.overflow = "hidden";
+        closeBtn.focus();
+      }
+      function closeNav() {
+        layer.setAttribute("hidden", "");
+        openBtn.setAttribute("aria-expanded", "false");
+        document.documentElement.style.overflow = "";
+        openBtn.focus();
+      }
+      openBtn.addEventListener("click", () => openNav());
+      if (backdrop) backdrop.addEventListener("click", () => closeNav());
+      if (closeBtn) closeBtn.addEventListener("click", () => closeNav());
+      dialog.querySelectorAll(".sim-nav-layer__links a").forEach((a) => {
+        a.addEventListener("click", () => closeNav());
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !layer.hasAttribute("hidden")) closeNav();
+      });
+    })();
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "]" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const tag = e.target && e.target.tagName;
+        if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+        e.preventDefault();
+        setPanelCollapsed(!controlPanel.classList.contains("is-collapsed"));
+      }
+    });
+
+    scene.add(new THREE.AmbientLight(0xc8e8d8, 0.48));
+    scene.add(new THREE.HemisphereLight(0x9ec8e8, 0x2a4a30, 0.35));
+    const sun = new THREE.DirectionalLight(0xfff8e8, 1.12);
+    sun.position.set(6, 14, 5);
+    scene.add(sun);
+    const rim = new THREE.DirectionalLight(0xa8c8ff, 0.26);
+    rim.position.set(-8, 5, -6);
+    scene.add(rim);
+
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(GROUND_DISK_R, 96),
+      new THREE.MeshStandardMaterial({ color: 0x0f1f14, roughness: 0.97, metalness: 0.03 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.028;
+    scene.add(ground);
+
+    /** Tapered blade (~3× taller than original0.5 unit stem) — narrow at tip. */
+    function makeBladeGeometry() {
+      const h = 1.5;
+      const geo = new THREE.CylinderGeometry(0.008, 0.03, h, 5, 1, false);
+      geo.translate(0, h / 2, 0);
+      return geo;
+    }
+
+    let bladeGeo = makeBladeGeometry();
+    const bladeMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.82,
+      metalness: 0.04,
+    });
+    let grass = new THREE.InstancedMesh(bladeGeo, bladeMat, bladeCount);
+    grass.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(bladeCount * 3), 3);
+
+    const dummy = new THREE.Object3D();
+    let phases = new Float32Array(bladeCount);
+    let baseRotY = new Float32Array(bladeCount);
+    let baseSX = new Float32Array(bladeCount);
+    let baseSY = new Float32Array(bladeCount);
+    let baseSZ = new Float32Array(bladeCount);
+    let baseGx = new Float32Array(bladeCount);
+    let baseGz = new Float32Array(bladeCount);
+    let standingCol = new Float32Array(bladeCount * 3);
+
+    function fillGrassData() {
+      let idx = 0;
+      while (idx < bladeCount) {
+        const ang = Math.random() * Math.PI * 2;
+        const rad = 0.28 + Math.sqrt(Math.random()) * FIELD_MAX_R;
+        const x = Math.cos(ang) * rad;
+        const z = Math.sin(ang) * rad;
+        grassPositions[idx * 2] = x;
+        grassPositions[idx * 2 + 1] = z;
+        baseGx[idx] = x;
+        baseGz[idx] = z;
+        dummy.position.set(x, 0, z);
+        baseRotY[idx] = Math.random() * Math.PI * 2;
+        dummy.rotation.y = baseRotY[idx];
+        dummy.rotation.z = (Math.random() - 0.5) * 0.18;
+        const sx = 0.72 + Math.random() * 0.55;
+        const sy = 0.78 + Math.random() * 0.5;
+        const sz = sx * (0.92 + Math.random() * 0.12);
+        baseSX[idx] = sx;
+        baseSY[idx] = sy;
+        baseSZ[idx] = sz;
+        dummy.scale.set(sx, sy, sz);
+        dummy.updateMatrix();
+        grass.setMatrixAt(idx, dummy.matrix);
+        phases[idx] = Math.random() * Math.PI * 2;
+        standingCol[idx * 3] = 0.1 + Math.random() * 0.09;
+        standingCol[idx * 3 + 1] = 0.28 + Math.random() * 0.22;
+        standingCol[idx * 3 + 2] = 0.03 + Math.random() * 0.05;
+        grass.instanceColor.setXYZ(idx, standingCol[idx * 3], standingCol[idx * 3 + 1], standingCol[idx * 3 + 2]);
+        idx++;
+      }
+      grass.instanceMatrix.needsUpdate = true;
+      grass.instanceColor.needsUpdate = true;
+    }
+
+    const reduceMotionGrass = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const grassIntroUntil = reduceMotionGrass ? 0 : performance.now() + 2400;
+
+    fillGrassData();
+    currentFlatten = new Float32Array(bladeCount);
+    targetFlatten = computeFlattenMap(
+      grassPositions,
+      bladeCount,
+      FIELD_PATTERNS[design].generate(1.0),
+      pathWidthMul,
+      patternScale
+    );
+    if (reduceMotionGrass) {
+      for (let i = 0; i < bladeCount; i++) currentFlatten[i] = targetFlatten[i];
+    }
+
+    scene.add(grass);
+
+    const pollenGeo = new THREE.BufferGeometry();
+    const pCount = 2400;
+    const pPos = new Float32Array(pCount * 3);
+    for (let i = 0; i < pCount; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.random() * 12.5;
+      pPos[i * 3] = Math.cos(a) * r;
+      pPos[i * 3 + 1] = 0.5 + Math.random() * 5.2;
+      pPos[i * 3 + 2] = Math.sin(a) * r;
+    }
+    pollenGeo.setAttribute("position", new THREE.BufferAttribute(pPos, 3));
+    const pollen = new THREE.Points(
+      pollenGeo,
+      new THREE.PointsMaterial({
+        color: 0xe8ffe8,
+        size: 0.048,
+        transparent: true,
+        opacity: 0.5,
+        depthWrite: false,
+        sizeAttenuation: true,
+      })
+    );
+    scene.add(pollen);
+
+    initSimTheme(document.getElementById("themeToggle"));
+
+    const presetsEl = document.getElementById("presets");
+    FIELD_PATTERNS.forEach((p, i) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.dataset.design = String(i);
+      btn.textContent = p.name;
+      if (i === 0) btn.classList.add("active");
+      btn.addEventListener("click", () => {
+        design = i;
+        presetsEl.querySelectorAll("button").forEach((b) => b.classList.toggle("active", b === btn));
+        regrowTarget();
+      });
+      presetsEl.appendChild(btn);
+    });
+
+    function setLabel(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    }
+
+    function readSliders() {
+      pathWidthMul = parseFloat(document.getElementById("pathWidth").value, 10);
+      patternScale = parseFloat(document.getElementById("patternScale").value, 10);
+      blendSpeed = parseFloat(document.getElementById("blendSpeed").value, 10);
+      windVal = parseFloat(document.getElementById("wind").value, 10);
+      windFreq = parseFloat(document.getElementById("windFreq").value, 10);
+      flatIntensity = parseFloat(document.getElementById("flatInt").value, 10);
+      bladeHeightMul = parseFloat(document.getElementById("bladeHeight").value, 10);
+      bladeWidthMul = parseFloat(document.getElementById("bladeWidth").value, 10);
+      setLabel("pathLabel", pathWidthMul.toFixed(2));
+      setLabel("scaleLabel", patternScale.toFixed(2));
+      setLabel("blendLabel", blendSpeed.toFixed(1));
+      setLabel("windLabel", windVal.toFixed(2));
+      setLabel("windFreqLabel", windFreq.toFixed(2));
+      setLabel("flatLabel", flatIntensity.toFixed(2));
+      setLabel("heightLabel", bladeHeightMul.toFixed(2));
+      setLabel("widthLabel", bladeWidthMul.toFixed(2));
+    }
+
+    readSliders();
+    ["pathWidth", "patternScale", "blendSpeed", "wind", "windFreq", "flatInt", "bladeHeight", "bladeWidth"].forEach((id) => {
+      document.getElementById(id).addEventListener("input", () => {
+        readSliders();
+        if (id === "pathWidth" || id === "patternScale") regrowTarget();
+      });
+    });
+
+    function rebuildField(newCount) {
+      bladeCount = newCount;
+      scene.remove(grass);
+      /* Do not call grass.dispose(): shared bladeGeo / bladeMat would be disposed too. */
+
+      grassPositions = new Float32Array(bladeCount * 2);
+      currentFlatten = new Float32Array(bladeCount);
+      targetFlatten = new Float32Array(bladeCount);
+      phases = new Float32Array(bladeCount);
+      baseRotY = new Float32Array(bladeCount);
+      baseSX = new Float32Array(bladeCount);
+      baseSY = new Float32Array(bladeCount);
+      baseSZ = new Float32Array(bladeCount);
+      baseGx = new Float32Array(bladeCount);
+      baseGz = new Float32Array(bladeCount);
+      standingCol = new Float32Array(bladeCount * 3);
+
+      grass = new THREE.InstancedMesh(bladeGeo, bladeMat, bladeCount);
+      grass.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(bladeCount * 3), 3);
+      fillGrassData();
+      regrowTarget();
+      for (let i = 0; i < bladeCount; i++) currentFlatten[i] = targetFlatten[i];
+      scene.add(grass);
+    }
+
+    document.getElementById("applyDensity").addEventListener("click", () => {
+      const next = parseInt(document.getElementById("density").value, 10);
+      setLabel("densityLabel", next >= 1000 ? `${Math.round(next / 1000)}k` : String(next));
+      if (next === bladeCount) {
+        regrowTarget();
+        return;
+      }
+      rebuildField(next);
+    });
+
+    setLabel("densityLabel", bladeCount >= 1000 ? `${Math.round(bladeCount / 1000)}k` : String(bladeCount));
+
+    window.addEventListener("resize", scheduleSyncSize);
+    scheduleSyncSize();
+    requestAnimationFrame(scheduleSyncSize);
+
+    const clock = new THREE.Clock();
+    const tmpCol = new THREE.Color();
+    function animate() {
+      const dt = clock.getDelta();
+      const t = clock.getElapsedTime();
+      const introBoost = performance.now() < grassIntroUntil ? 2.5 : 1;
+      interpolateFlattenMap(currentFlatten, targetFlatten, dt, blendSpeed * introBoost);
+
+      for (let i = 0; i < bladeCount; i++) {
+        const crop = Math.min(1, currentFlatten[i] * flatIntensity);
+        const windZ0 = Math.sin(t * windFreq + phases[i]) * 0.2 * windVal;
+        const windX0 = Math.sin(t * windFreq * 0.62 + phases[i] * 0.5) * 0.055 * windVal;
+
+        const flatW = 1 + crop * 1.72;
+        /* Less vertical squash: folding is mostly from pitch (bend), not scale. */
+        const flatY = baseSY[i] * bladeHeightMul * (0.52 + 0.48 * (1 - crop * 0.62));
+
+        const rdx = baseGx[i];
+        const rdz = baseGz[i];
+        const rlen = Math.hypot(rdx, rdz);
+        const layYaw = rlen > 0.32 ? Math.atan2(rdx, rdz) : baseRotY[i];
+        const align = crop * crop * 0.94;
+        const yaw = THREE.MathUtils.lerp(baseRotY[i], layYaw, align);
+
+        /* Match SPEC-style bend: strong pitch + slight roll when flattened; wind reduced in crop. */
+        const bendPitch = crop * 1.31;
+        const windAtten = 1 - crop * 0.62;
+        dummy.position.set(baseGx[i], 0, baseGz[i]);
+        dummy.rotation.order = "YXZ";
+        dummy.rotation.y = yaw;
+        dummy.rotation.x = windX0 * windAtten + bendPitch;
+        dummy.rotation.z = windZ0 * windAtten + crop * 0.22 * Math.sin(phases[i] + rdx - rdz);
+        dummy.scale.set(
+          baseSX[i] * bladeWidthMul * flatW,
+          flatY,
+          baseSZ[i] * bladeWidthMul * flatW
+        );
+        dummy.updateMatrix();
+        grass.setMatrixAt(i, dummy.matrix);
+
+        tmpCol.setRGB(standingCol[i * 3], standingCol[i * 3 + 1], standingCol[i * 3 + 2]);
+        tmpCol.lerp(STRAW, crop * 0.9);
+        grass.instanceColor.setXYZ(i, tmpCol.r, tmpCol.g, tmpCol.b);
+      }
+      grass.instanceMatrix.needsUpdate = true;
+      grass.instanceColor.needsUpdate = true;
+
+      const pp = pollen.geometry.attributes.position.array;
+      for (let i = 0; i < pCount; i++) {
+        const ix = i * 3;
+        pp[ix] += Math.sin(t * 0.7 + i) * 0.003 * windVal;
+        pp[ix + 1] += Math.cos(t * 0.5 + i * 0.1) * 0.002;
+        pp[ix + 2] += Math.cos(t * 0.6 + i) * 0.003 * windVal;
+      }
+      pollen.geometry.attributes.position.needsUpdate = true;
+
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>

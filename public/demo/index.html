@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script>
+    try {
+      if (localStorage.getItem("cropsySimTheme") === "dark") document.documentElement.removeAttribute("data-theme");
+      else document.documentElement.dataset.theme = "light";
+    } catch (e) {
+      document.documentElement.dataset.theme = "light";
+    }
+  </script>
+  <title>Cropsy — Cymatics-style plate preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #060a08; font-family: "DM Sans", system-ui, sans-serif; }
+    .app-shell { display: flex; flex-direction: column; height: 100%; color: #f5faf6; }
+    .app-header {
+      flex: 0 0 auto; max-height: none; min-height: 40px;
+      display: flex; align-items: center; justify-content: flex-start; flex-wrap: nowrap; gap: 12px;
+      padding: 0 14px 0 16px;
+      background: rgba(4, 14, 10, 0.88); border-bottom: 1px solid rgba(18, 144, 121, 0.2);
+      z-index: 5;
+    }
+    .brand { display: flex; align-items: baseline; gap: 10px; flex-shrink: 0; min-width: 0; }
+    a.brand { text-decoration: none; color: inherit; cursor: pointer; }
+    a.brand:focus-visible { outline: 2px solid #129079; outline-offset: 3px; border-radius: 4px; }
+    .brand-mark { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #129079; }
+    .brand-title { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; color: #f0faf4; }
+    .header-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+      flex-shrink: 0;
+      min-width: 0;
+    }
+    @media (min-width: 1024px) {
+      .header-toolbar {
+        flex: 1;
+        justify-content: flex-end;
+      }
+      .header-toolbar .header-nav {
+        flex: 1 1 auto;
+        justify-content: flex-end;
+        margin-left: 0;
+        min-width: 0;
+      }
+    }
+    .header-nav {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+      justify-content: flex-end; flex: 0 1 auto; min-width: 0;
+    }
+    .sim-nav-trigger {
+      display: none;
+      font-family: inherit;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid rgba(18, 144, 121, 0.45);
+      background: rgba(18, 144, 121, 0.18);
+      color: #7ad4bb;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .sim-nav-trigger:hover {
+      background: rgba(233, 30, 99, 0.2);
+      border-color: rgba(233, 30, 99, 0.45);
+      color: #ffb3d0;
+    }
+    .sim-nav-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px))
+        max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+    }
+    .sim-nav-layer[hidden] {
+      display: none !important;
+    }
+    .sim-nav-layer__backdrop {
+      position: absolute;
+      inset: 0;
+      border: none;
+      padding: 0;
+      margin: 0;
+      background: rgba(0, 0, 0, 0.52);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      cursor: pointer;
+    }
+    .sim-nav-layer__dialog {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 320px;
+      max-height: min(420px, 85vh);
+      overflow: auto;
+      background: rgba(6, 18, 12, 0.97);
+      border: 1px solid rgba(18, 144, 121, 0.38);
+      border-radius: 14px;
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55);
+      padding: 12px 14px 16px;
+    }
+    .sim-nav-layer__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(18, 144, 121, 0.22);
+    }
+    .sim-nav-layer__title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #129079;
+    }
+    .sim-nav-layer__close {
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(233, 30, 99, 0.18);
+      color: #f5faf6;
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .sim-nav-layer__close:hover {
+      background: rgba(233, 30, 99, 0.32);
+    }
+    .sim-nav-layer__links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sim-nav-layer__links a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: #129079;
+      background: rgba(18, 144, 121, 0.12);
+      border: 1px solid rgba(18, 144, 121, 0.35);
+    }
+    .sim-nav-layer__links a:hover {
+      background: rgba(233, 30, 99, 0.18);
+      border-color: rgba(233, 30, 99, 0.45);
+      color: #ffb3d0;
+    }
+    .sim-nav-layer__links a[aria-current="page"] {
+      background: rgba(233, 30, 99, 0.25);
+      border-color: rgba(233, 30, 99, 0.55);
+      color: #fff;
+    }
+    .header-nav a {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #129079; text-decoration: none; white-space: nowrap;
+    }
+    .header-nav a:hover { color: #E91E63; }
+    .header-nav a[aria-current="page"] {
+      color: #f0faf4;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-color: rgba(233, 30, 99, 0.65);
+    }
+    .header-actions { flex-shrink: 0; margin-left: 0; }
+    .header-actions button {
+      font-size: 14px; line-height: 1; padding: 6px 10px; border-radius: 6px;
+      border: 1px solid rgba(233, 30, 99, 0.35); background: rgba(18, 144, 121, 0.2); color: #e8fff4; cursor: pointer;
+    }
+    .header-actions button[aria-pressed="true"] { background: rgba(233, 30, 99, 0.35); border-color: #E91E63; }
+    .main-stage { flex: 1; display: flex; min-height: 0; position: relative; }
+    .canvas-shell { flex: 1; min-width: 0; position: relative; background: #0a0a0a; }
+    #canvas { display: block; width: 100%; height: 100%; touch-action: none; vertical-align: middle; }
+    .transport-overlay {
+      position: absolute; bottom: 0; left: 0; right: 0; min-height: 44px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+      padding: 10px 16px; z-index: 10;
+      background: rgba(0, 0, 0, 0.42); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      transition: opacity 0.35s ease;
+    }
+    .transport-overlay.hidden { opacity: 0; pointer-events: none; }
+    .transport-hint { font-size: 11px; font-weight: 500; color: rgba(245, 250, 246, 0.85); letter-spacing: 0.04em; }
+    .transport-badge {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(100, 181, 246, 0.95);
+      text-decoration: none;
+    }
+    .transport-badge:hover {
+      color: #fff;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .transport-badge:focus-visible {
+      outline: 2px solid rgba(100, 181, 246, 0.85);
+      outline-offset: 3px;
+      border-radius: 2px;
+    }
+    .control-panel {
+      --panel-w: 280px;
+      --panel-mobile-h: min(46vh, 360px);
+      position: relative; flex: 0 0 var(--panel-w); width: var(--panel-w); max-width: min(var(--panel-w), 100%);
+      display: flex; flex-direction: column;
+      background: rgba(6, 18, 12, 0.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border-left: 1px solid rgba(18, 144, 121, 0.22);
+      box-shadow: -8px 0 32px rgba(0, 0, 0, 0.35);
+    }
+    .control-panel.is-panel-drag { transition: none !important; }
+    .control-panel.is-collapsed { flex-basis: 44px; width: 44px; min-width: 44px; }
+    .control-panel.is-collapsed .panel-scroll,
+    .control-panel.is-collapsed .panel-resize-handle { display: none; }
+    .panel-collapse-edge {
+      position: absolute; left: 0; top: 50%; transform: translateY(-50%); z-index: 3;
+      width: 22px; height: 48px; margin-left: -11px; padding: 0; border-radius: 8px 0 0 8px;
+      border: 1px solid rgba(233, 30, 99, 0.35); border-right: none;
+      background: rgba(8, 22, 16, 0.95); color: #e8fff4; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; line-height: 0;
+    }
+    .panel-collapse-edge__chev {
+      display: block; width: 0; height: 0; border-style: solid;
+      border-width: 5px 6px 5px 0;
+      border-color: transparent currentColor transparent transparent;
+      flex-shrink: 0; transition: transform 0.2s ease;
+    }
+    .control-panel.is-collapsed .panel-collapse-edge__chev { transform: rotate(180deg); }
+    .panel-collapse-edge:hover { background: rgba(233, 30, 99, 0.25); }
+    @media (min-width: 1024px) {
+      .control-panel { --panel-w: 256px; }
+      .panel-collapse-edge {
+        width: 20px; height: 44px;
+        margin-left: -15px;
+        border-radius: 10px 0 0 10px;
+        background: rgba(8, 22, 16, 0.96);
+        color: #e8fff4;
+        border: 1px solid rgba(233, 30, 99, 0.4);
+        border-right: none;
+        box-shadow: none;
+      }
+      .panel-collapse-edge:hover {
+        background: rgba(12, 38, 28, 0.98);
+        border-color: rgba(90, 200, 175, 0.45);
+      }
+      .panel-collapse-edge:focus-visible {
+        outline: 2px solid rgba(233, 30, 99, 0.55);
+        outline-offset: 2px;
+      }
+      .panel-collapse-edge__chev {
+        transform-origin: center;
+        border-width: 5px 0 5px 6px;
+        border-color: transparent transparent transparent currentColor;
+        transform: none;
+      }
+      .control-panel.is-collapsed .panel-collapse-edge__chev {
+        transform: rotate(180deg);
+      }
+    }
+    .panel-resize-handle { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 2; margin-left: -3px; }
+    .panel-resize-handle:hover { background: rgba(233, 30, 99, 0.15); }
+    .panel-mobile-resize {
+      display: none;
+    }
+    .panel-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      width: 100%;
+      min-width: 0;
+      padding: 14px 14px 20px 18px;
+      scrollbar-gutter: stable;
+      scrollbar-color: rgba(233, 30, 99, 0.45) rgba(0, 0, 0, 0.2);
+    }
+    .acc {
+      border: 1px solid rgba(18, 144, 121, 0.2); border-radius: 10px; margin-bottom: 10px;
+      background: rgba(0, 0, 0, 0.18); overflow: hidden;
+    }
+    .acc summary {
+      list-style: none; cursor: pointer; padding: 10px 12px; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase; color: #7a9a8a;
+      display: flex; align-items: center; justify-content: space-between; user-select: none;
+    }
+    .acc summary::-webkit-details-marker { display: none; }
+    .acc summary::after { content: "\25BE"; font-size: 10px; opacity: 0.6; transition: transform 0.2s; }
+    .acc:not([open]) summary::after { transform: rotate(-90deg); }
+    .acc .acc-body { padding: 0 12px 12px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+    .panel-lede { margin: 0 0 10px; font-size: 12px; line-height: 1.5; color: rgba(245, 250, 246, 0.82); }
+    .row { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; margin-top: 4px; }
+    .row label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #8a9a92; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .chladni-presets {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+      max-height: 200px; overflow-y: auto;
+      scrollbar-color: rgba(233, 30, 99, 0.45) rgba(0, 0, 0, 0.2);
+    }
+    .chladni-presets button {
+      font-family: inherit; font-size: 9px; font-weight: 600; letter-spacing: 0.04em;
+      padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(233, 30, 99, 0.35);
+      background: rgba(18, 144, 121, 0.18); color: #e8fff4; cursor: pointer;
+    }
+    .chladni-presets button:hover { background: rgba(233, 30, 99, 0.28); color: #fff; }
+    .badge {
+      display: inline-block; font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 3px 7px; border-radius: 4px; background: rgba(25, 118, 210, 0.2); color: #64b5f6;
+    }
+    .app-shell.focus-mode .control-panel { display: none !important; }
+    @media (max-width: 639px) {
+      .app-header {
+        flex-wrap: wrap;
+        padding: 10px 12px 12px;
+        align-items: center;
+        row-gap: 0;
+      }
+      .brand { flex: 1 1 auto; min-width: 0; order: 1; }
+      .header-toolbar { order: 2; margin-left: auto; flex: 0 0 auto; }
+      .sim-nav-trigger { display: inline-flex; }
+      .header-toolbar .header-nav {
+        display: none !important;
+      }
+    }
+    @media (max-width: 1023px) {
+      .main-stage { flex-direction: column; }
+      .canvas-shell { flex: 1; min-height: 42vh; }
+      .control-panel {
+        flex: 0 0 auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: var(--panel-mobile-h, min(46vh, 360px));
+        max-height: var(--panel-mobile-h, min(46vh, 360px));
+        min-height: 180px;
+        border-left: none; border-top: 1px solid rgba(18, 144, 121, 0.25);
+        border-radius: 14px 14px 0 0; box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+      }
+      .control-panel.is-collapsed {
+        height: auto !important;
+        max-height: 52px !important;
+        min-height: 0;
+      }
+      .panel-resize-handle { display: none; }
+      .panel-mobile-resize {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        min-height: 44px;
+        margin: 2px 12px 0;
+        padding: 0;
+        border-radius: 999px;
+        cursor: ns-resize;
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+        background: transparent;
+        position: relative;
+        z-index: 2;
+        overscroll-behavior: none;
+      }
+      .panel-mobile-resize::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 44px;
+        height: 5px;
+        border-radius: 3px;
+        background: rgba(18, 144, 121, 0.55);
+      }
+      .panel-mobile-resize:hover::after {
+        background: rgba(233, 30, 99, 0.55);
+      }
+      .panel-scroll {
+        padding-left: max(14px, env(safe-area-inset-left, 0px));
+        padding-right: max(14px, env(safe-area-inset-right, 0px));
+        padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+      }
+      .panel-collapse-edge { top: 8px; transform: none; margin-left: 8px; border-radius: 8px; border: 1px solid rgba(233, 30, 99, 0.35); }
+      .control-panel.is-collapsed .panel-mobile-resize { display: none; }
+    }
+  </style>
+  <link rel="stylesheet" href="/sim-theme.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <a class="brand" href="/" aria-label="Cropsy — home">
+        <span class="brand-mark">Cropsy</span>
+        <span class="brand-title">Cymatics plate lab</span>
+      </a>
+      <div class="header-toolbar">
+        <button
+          type="button"
+          class="sim-nav-trigger"
+          id="simNavOpen"
+          aria-expanded="false"
+          aria-controls="simNavDialog"
+          aria-haspopup="dialog"
+          aria-label="Open site menu"
+        >
+          Menu
+        </button>
+        <nav class="header-nav" aria-label="Site links">
+          <a href="/">Home</a>
+          <a href="/grass-crop-circle.html">Grass designer</a>
+          <a href="/demo/" aria-current="page">Cymatics plate</a>
+          <a href="/field.html">Field preview</a>
+          <a href="/crop-circle-3d.html">Rings 3D</a>
+        </nav>
+        <div class="header-actions">
+          <button type="button" id="themeToggle" class="sim-theme-toggle">&#x2600;</button>
+          <button type="button" id="focusToggle" aria-pressed="false" title="Focus mode">&#x25E7;</button>
+        </div>
+      </div>
+    </header>
+    <div id="simNavLayer" class="sim-nav-layer" hidden>
+      <button type="button" class="sim-nav-layer__backdrop" id="simNavBackdrop" tabindex="-1" aria-label="Close menu"></button>
+      <div class="sim-nav-layer__dialog" id="simNavDialog" role="dialog" aria-modal="true" aria-labelledby="simNavTitle" tabindex="-1">
+        <div class="sim-nav-layer__head">
+          <span class="sim-nav-layer__title" id="simNavTitle">Cropsy</span>
+          <button type="button" class="sim-nav-layer__close" id="simNavClose" aria-label="Close menu">&times;</button>
+        </div>
+        <nav class="sim-nav-layer__links" aria-label="Site links">
+          <a href="/">Home</a>
+          <a href="/grass-crop-circle.html">Grass designer</a>
+          <a href="/demo/" aria-current="page">Cymatics plate</a>
+          <a href="/field.html">Field preview</a>
+          <a href="/crop-circle-3d.html">Rings 3D</a>
+        </nav>
+      </div>
+    </div>
+    <div class="main-stage">
+      <div class="canvas-shell" id="canvasShell">
+        <canvas id="canvas" aria-label="Chladni-style plate and wireframe stack"></canvas>
+        <div class="transport-overlay" id="transportOverlay" role="status">
+          <span class="transport-hint">Drag to orbit · scroll to zoom · tune modes in the panel</span>
+          <a
+            class="transport-badge"
+            href="https://nocturnal.cloud"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="https://nocturnal.cloud"
+            aria-label="Built by Nocturnal Labs — nocturnal.cloud (opens in a new tab)"
+            >Built by Nocturnal Labs</a>
+        </div>
+      </div>
+      <aside class="control-panel" id="controlPanel">
+        <button type="button" class="panel-collapse-edge" id="panelCollapse" aria-expanded="true" title="Collapse (])"><span class="panel-collapse-edge__chev" aria-hidden="true"></span></button>
+        <div class="panel-resize-handle" id="panelResize" aria-hidden="true"></div>
+        <div
+          class="panel-mobile-resize"
+          id="panelMobileResize"
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Drag to resize panel height"
+        ></div>
+        <div class="panel-scroll">
+          <details class="acc" open>
+            <summary>Plate modes</summary>
+            <div class="acc-body">
+              <p class="panel-lede">For boards and storytelling: a square-plate <strong>n</strong>, <strong>m</strong> nodal shader beside a wireframe stack. Real Chladni physics is real — this scene is a stylised sketch, not a lab measurement tied to your formation.</p>
+              <div class="row">
+                <label>Mode n <input type="range" id="rn" min="1" max="9" value="3" /></label>
+                <label>Mode m <input type="range" id="rm" min="1" max="9" value="2" /></label>
+              </div>
+            </div>
+          </details>
+          <details class="acc">
+            <summary>crop-catelog.md Chladni modes</summary>
+            <div class="acc-body">
+              <p class="panel-lede">Ten reference <strong>(n, m)</strong> pairs from <strong>crop-catelog.md</strong> §40 — quick jumps for plate styling.</p>
+              <div class="chladni-presets" id="chladniCatalogPresets" role="group" aria-label="Chladni mode presets from catalog"></div>
+            </div>
+          </details>
+          <details class="acc">
+            <summary>About</summary>
+            <div class="acc-body">
+              <span class="badge">Designer lab · not FEM-grade</span>
+              <p class="panel-lede" style="margin-top:10px">Pair interesting nodal looks with your crop sketches for clients or crew — keep claims about “matching frequencies” out of serious science contexts.</p>
+            </div>
+          </details>
+        </div>
+      </aside>
+    </div>
+  </div>
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+    import { CHLADNI_CATALOG_PRESETS } from "/crop-field-patterns.mjs";
+    import { initSimTheme } from "/sim-theme.mjs";
+
+    const canvas = document.getElementById("canvas");
+    const rn = document.getElementById("rn");
+    const rm = document.getElementById("rm");
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x0a0a0a, 1);
+
+    initSimTheme(document.getElementById("themeToggle"));
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(50, 1.2, 0.1, 100);
+    camera.position.set(0.42, 2.65, 0.55);
+
+    const controls = new OrbitControls(camera, canvas);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.target.set(0, 0.15, 0);
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    controls.autoRotate = !reduceMotion;
+    controls.autoRotateSpeed = 0.28;
+    controls.update();
+
+    const canvasShell = document.getElementById("canvasShell");
+    const controlPanel = document.getElementById("controlPanel");
+    const appShell = document.querySelector(".app-shell");
+    function syncSize() {
+      const rect = canvasShell.getBoundingClientRect();
+      const w = Math.max(1, Math.round(rect.width));
+      const h = Math.max(1, Math.round(rect.height));
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h, false);
+    }
+    let syncSizeRaf = 0;
+    function scheduleSyncSize() {
+      cancelAnimationFrame(syncSizeRaf);
+      syncSizeRaf = requestAnimationFrame(() => {
+        syncSizeRaf = 0;
+        syncSize();
+      });
+    }
+    new ResizeObserver(() => scheduleSyncSize()).observe(canvasShell);
+    const transportOverlay = document.getElementById("transportOverlay");
+    let transportTimer = 0;
+    function pokeTransport() {
+      transportOverlay.classList.remove("hidden");
+      clearTimeout(transportTimer);
+      transportTimer = setTimeout(() => transportOverlay.classList.add("hidden"), 3200);
+    }
+    canvasShell.addEventListener("mousemove", pokeTransport);
+    canvasShell.addEventListener("touchstart", pokeTransport, { passive: true });
+    pokeTransport();
+    const LS_PANEL = "demoChladniPanelW";
+    const LS_COLLAPSED = "demoChladniPanelCollapsed";
+    const LS_FOCUS = "demoChladniFocus";
+    const savedW = localStorage.getItem(LS_PANEL);
+    if (savedW) {
+      const n = parseInt(savedW, 10);
+      if (n >= 240 && n <= 400) controlPanel.style.setProperty("--panel-w", `${n}px`);
+    }
+    function setPanelCollapsed(collapsed) {
+      controlPanel.classList.toggle("is-collapsed", collapsed);
+      document.getElementById("panelCollapse").setAttribute("aria-expanded", String(!collapsed));
+      localStorage.setItem(LS_COLLAPSED, collapsed ? "1" : "0");
+      scheduleSyncSize();
+    }
+    document.getElementById("panelCollapse").addEventListener("click", () => {
+      setPanelCollapsed(!controlPanel.classList.contains("is-collapsed"));
+    });
+    let resizeActive = false;
+    document.getElementById("panelResize").addEventListener("mousedown", (e) => {
+      if (window.matchMedia("(max-width: 1023px)").matches) return;
+      resizeActive = true;
+      controlPanel.classList.add("is-panel-drag");
+      e.preventDefault();
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!resizeActive) return;
+      const newW = Math.min(400, Math.max(240, window.innerWidth - e.clientX));
+      controlPanel.style.setProperty("--panel-w", `${newW}px`);
+      localStorage.setItem(LS_PANEL, String(Math.round(newW)));
+      scheduleSyncSize();
+    });
+    window.addEventListener("mouseup", () => {
+      if (resizeActive) {
+        resizeActive = false;
+        controlPanel.classList.remove("is-panel-drag");
+        scheduleSyncSize();
+      }
+    });
+    function setFocusMode(on) {
+      appShell.classList.toggle("focus-mode", on);
+      document.getElementById("focusToggle").setAttribute("aria-pressed", String(on));
+      localStorage.setItem(LS_FOCUS, on ? "1" : "0");
+      scheduleSyncSize();
+    }
+    document.getElementById("focusToggle").addEventListener("click", () =>
+      setFocusMode(!appShell.classList.contains("focus-mode"))
+    );
+    if (localStorage.getItem(LS_FOCUS) === "1") setFocusMode(true);
+    else if (localStorage.getItem(LS_COLLAPSED) === "1") setPanelCollapsed(true);
+
+    const LS_PANEL_MOBILE_H = "demoChladniPanelMobileH";
+    const panelMobileResize = document.getElementById("panelMobileResize");
+    const mqMobilePanel = window.matchMedia("(max-width: 1023px)");
+    function applyMobilePanelHeight(px) {
+      if (!mqMobilePanel.matches) return;
+      const vh = window.innerHeight;
+      const h = Math.round(Math.max(200, Math.min(px, vh * 0.88)));
+      controlPanel.style.setProperty("--panel-mobile-h", `${h}px`);
+      localStorage.setItem(LS_PANEL_MOBILE_H, String(h));
+    }
+    function initMobilePanelHeight() {
+      if (!mqMobilePanel.matches) return;
+      const raw = localStorage.getItem(LS_PANEL_MOBILE_H);
+      const vh = window.innerHeight;
+      const def = Math.min(Math.round(vh * 0.46), 420);
+      const parsed = raw ? parseInt(raw, 10) : NaN;
+      applyMobilePanelHeight(Number.isFinite(parsed) ? parsed : def);
+    }
+    initMobilePanelHeight();
+    window.addEventListener("resize", () => {
+      if (mqMobilePanel.matches) initMobilePanelHeight();
+    });
+    let mobilePanelDrag = false;
+    let mobilePanelStartY = 0;
+    let mobilePanelStartH = 0;
+    if (panelMobileResize) {
+      function onMobilePanelPointerMove(e) {
+        if (!mobilePanelDrag) return;
+        e.preventDefault();
+        const dy = e.clientY - mobilePanelStartY;
+        applyMobilePanelHeight(mobilePanelStartH - dy);
+        scheduleSyncSize();
+      }
+      function endMobilePanelDrag() {
+        if (!mobilePanelDrag) return;
+        mobilePanelDrag = false;
+        document.removeEventListener("pointermove", onMobilePanelPointerMove);
+        document.removeEventListener("pointerup", endMobilePanelDrag);
+        document.removeEventListener("pointercancel", endMobilePanelDrag);
+        scheduleSyncSize();
+      }
+      panelMobileResize.addEventListener("pointerdown", (e) => {
+        if (!mqMobilePanel.matches || controlPanel.classList.contains("is-collapsed")) return;
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        mobilePanelDrag = true;
+        mobilePanelStartY = e.clientY;
+        mobilePanelStartH = controlPanel.getBoundingClientRect().height;
+        document.addEventListener("pointermove", onMobilePanelPointerMove, { passive: false });
+        document.addEventListener("pointerup", endMobilePanelDrag);
+        document.addEventListener("pointercancel", endMobilePanelDrag);
+      });
+    }
+    (function simNavModal() {
+      const openBtn = document.getElementById("simNavOpen");
+      const layer = document.getElementById("simNavLayer");
+      const backdrop = document.getElementById("simNavBackdrop");
+      const closeBtn = document.getElementById("simNavClose");
+      const dialog = document.getElementById("simNavDialog");
+      if (!openBtn || !layer || !dialog) return;
+      function openNav() {
+        layer.removeAttribute("hidden");
+        openBtn.setAttribute("aria-expanded", "true");
+        document.documentElement.style.overflow = "hidden";
+        closeBtn.focus();
+      }
+      function closeNav() {
+        layer.setAttribute("hidden", "");
+        openBtn.setAttribute("aria-expanded", "false");
+        document.documentElement.style.overflow = "";
+        openBtn.focus();
+      }
+      openBtn.addEventListener("click", () => openNav());
+      if (backdrop) backdrop.addEventListener("click", () => closeNav());
+      if (closeBtn) closeBtn.addEventListener("click", () => closeNav());
+      dialog.querySelectorAll(".sim-nav-layer__links a").forEach((a) => {
+        a.addEventListener("click", () => closeNav());
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !layer.hasAttribute("hidden")) closeNav();
+      });
+    })();
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "]" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const tag = e.target && e.target.tagName;
+        if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+        e.preventDefault();
+        setPanelCollapsed(!controlPanel.classList.contains("is-collapsed"));
+      }
+    });
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+    const key = new THREE.DirectionalLight(0xffffff, 0.9);
+    key.position.set(2, 4, 3);
+    scene.add(key);
+    const fill = new THREE.DirectionalLight(0xe91ece, 0.25);
+    fill.position.set(-3, 1, -2);
+    scene.add(fill);
+
+    const chladniVertex = `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
+    const chladniFragment = `
+      uniform float u_n;
+      uniform float u_m;
+      uniform float u_time;
+      varying vec2 vUv;
+
+      void main() {
+        vec2 p = vUv * 3.14159265;
+        float x = p.x;
+        float y = p.y;
+        float v = cos(u_n * x) * cos(u_m * y) - cos(u_m * x) * cos(u_n * y);
+        float w = sin(u_time * 0.4) * 0.08;
+        float line = 1.0 - smoothstep(0.0, 0.045 + w, abs(v));
+        vec3 teal = vec3(0.071, 0.565, 0.475);
+        vec3 pink = vec3(0.914, 0.118, 0.388);
+        vec3 base = mix(vec3(0.04, 0.04, 0.05), vec3(0.08, 0.09, 0.1), vUv.x * vUv.y);
+        vec3 glow = mix(teal, pink, 0.35 + 0.25 * sin(u_time * 0.2));
+        vec3 col = mix(base, glow, line * 0.95);
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `;
+
+    const chladniUniforms = {
+      u_n: { value: 3 },
+      u_m: { value: 2 },
+      u_time: { value: 0 },
+    };
+
+    const planeGeo = new THREE.PlaneGeometry(2.2, 2.2, 1, 1);
+    const chladniMat = new THREE.ShaderMaterial({
+      uniforms: chladniUniforms,
+      vertexShader: chladniVertex,
+      fragmentShader: chladniFragment,
+      side: THREE.DoubleSide,
+    });
+    const plate = new THREE.Mesh(planeGeo, chladniMat);
+    plate.rotation.x = -Math.PI / 2;
+    plate.position.y = -0.01;
+    scene.add(plate);
+
+    const rim = new THREE.Mesh(
+      new THREE.TorusGeometry(1.15, 0.012, 8, 96),
+      new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.6, roughness: 0.35 })
+    );
+    rim.rotation.x = Math.PI / 2;
+    rim.position.y = -0.02;
+    scene.add(rim);
+
+    function circleLineLoop(radius, segments) {
+      const pts = [];
+      for (let i = 0; i <= segments; i++) {
+        const t = (i / segments) * Math.PI * 2;
+        pts.push(new THREE.Vector3(Math.cos(t) * radius, Math.sin(t) * radius, 0));
+      }
+      const g = new THREE.BufferGeometry().setFromPoints(pts);
+      return new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0xe91e63, transparent: true, opacity: 0.92 }));
+    }
+
+    const fol = new THREE.Group();
+    const R = 0.22;
+    fol.add(circleLineLoop(R, 72));
+    for (let i = 0; i < 6; i++) {
+      const ang = (i / 6) * Math.PI * 2;
+      const c = circleLineLoop(R, 72);
+      c.position.set(Math.cos(ang) * R, Math.sin(ang) * R, 0);
+      fol.add(c);
+    }
+    fol.position.y = 0.18;
+    fol.scale.setScalar(1.15);
+    scene.add(fol);
+
+    rn.addEventListener("input", () => { chladniUniforms.u_n.value = parseFloat(rn.value, 10); });
+    rm.addEventListener("input", () => { chladniUniforms.u_m.value = parseFloat(rm.value, 10); });
+
+    const presetHost = document.getElementById("chladniCatalogPresets");
+    CHLADNI_CATALOG_PRESETS.forEach((p) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = p.name;
+      b.title = `Set plate mode n=${p.n}, m=${p.m}`;
+      b.addEventListener("click", () => {
+        rn.value = String(p.n);
+        rm.value = String(p.m);
+        chladniUniforms.u_n.value = p.n;
+        chladniUniforms.u_m.value = p.m;
+        rn.dispatchEvent(new Event("input", { bubbles: true }));
+        rm.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      presetHost.appendChild(b);
+    });
+
+    window.addEventListener("resize", scheduleSyncSize);
+    scheduleSyncSize();
+    requestAnimationFrame(scheduleSyncSize);
+
+    let t0 = performance.now();
+    function frame(now) {
+      const t = (now - t0) * 0.001;
+      chladniUniforms.u_time.value = t;
+      fol.rotation.z = t * 0.12;
+      fol.position.y = 0.18 + Math.sin(t * 0.7) * 0.02;
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script>
+    try {
+      if (localStorage.getItem("cropsySimTheme") === "dark") document.documentElement.removeAttribute("data-theme");
+      else document.documentElement.dataset.theme = "light";
+    } catch (e) {
+      document.documentElement.dataset.theme = "light";
+    }
+  </script>
+  <title>Cropsy — Aerial rings formation preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #060a08; font-family: "DM Sans", system-ui, sans-serif; }
+    .app-shell { display: flex; flex-direction: column; height: 100%; color: #f5faf6; }
+    .app-header {
+      flex: 0 0 auto; max-height: none; min-height: 40px;
+      display: flex; align-items: center; justify-content: flex-start; flex-wrap: nowrap; gap: 12px;
+      padding: 0 14px 0 16px;
+      background: rgba(4, 14, 10, 0.88); border-bottom: 1px solid rgba(18, 144, 121, 0.2);
+      z-index: 5;
+    }
+    .brand { display: flex; align-items: baseline; gap: 10px; flex-shrink: 0; min-width: 0; }
+    a.brand { text-decoration: none; color: inherit; cursor: pointer; }
+    a.brand:focus-visible { outline: 2px solid #129079; outline-offset: 3px; border-radius: 4px; }
+    .brand-mark { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #129079; }
+    .brand-title { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; color: #f0faf4; }
+    .header-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+      flex-shrink: 0;
+      min-width: 0;
+    }
+    @media (min-width: 1024px) {
+      .header-toolbar {
+        flex: 1;
+        justify-content: flex-end;
+      }
+      .header-toolbar .header-nav {
+        flex: 1 1 auto;
+        justify-content: flex-end;
+        margin-left: 0;
+        min-width: 0;
+      }
+    }
+    .header-nav {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+      justify-content: flex-end; flex: 0 1 auto; min-width: 0;
+    }
+    .sim-nav-trigger {
+      display: none;
+      font-family: inherit;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid rgba(18, 144, 121, 0.45);
+      background: rgba(18, 144, 121, 0.18);
+      color: #7ad4bb;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .sim-nav-trigger:hover {
+      background: rgba(233, 30, 99, 0.2);
+      border-color: rgba(233, 30, 99, 0.45);
+      color: #ffb3d0;
+    }
+    .sim-nav-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px))
+        max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+    }
+    .sim-nav-layer[hidden] {
+      display: none !important;
+    }
+    .sim-nav-layer__backdrop {
+      position: absolute;
+      inset: 0;
+      border: none;
+      padding: 0;
+      margin: 0;
+      background: rgba(0, 0, 0, 0.52);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      cursor: pointer;
+    }
+    .sim-nav-layer__dialog {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 320px;
+      max-height: min(420px, 85vh);
+      overflow: auto;
+      background: rgba(6, 18, 12, 0.97);
+      border: 1px solid rgba(18, 144, 121, 0.38);
+      border-radius: 14px;
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55);
+      padding: 12px 14px 16px;
+    }
+    .sim-nav-layer__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(18, 144, 121, 0.22);
+    }
+    .sim-nav-layer__title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #129079;
+    }
+    .sim-nav-layer__close {
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(233, 30, 99, 0.18);
+      color: #f5faf6;
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .sim-nav-layer__close:hover {
+      background: rgba(233, 30, 99, 0.32);
+    }
+    .sim-nav-layer__links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sim-nav-layer__links a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: #129079;
+      background: rgba(18, 144, 121, 0.12);
+      border: 1px solid rgba(18, 144, 121, 0.35);
+    }
+    .sim-nav-layer__links a:hover {
+      background: rgba(233, 30, 99, 0.18);
+      border-color: rgba(233, 30, 99, 0.45);
+      color: #ffb3d0;
+    }
+    .sim-nav-layer__links a[aria-current="page"] {
+      background: rgba(233, 30, 99, 0.25);
+      border-color: rgba(233, 30, 99, 0.55);
+      color: #fff;
+    }
+    .header-nav a {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #129079; text-decoration: none; white-space: nowrap;
+    }
+    .header-nav a:hover { color: #E91E63; }
+    .header-nav a[aria-current="page"] {
+      color: #f0faf4;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-color: rgba(233, 30, 99, 0.65);
+    }
+    .header-actions button {
+      font-size: 14px; line-height: 1; padding: 6px 10px; border-radius: 6px;
+      border: 1px solid rgba(233, 30, 99, 0.35); background: rgba(18, 144, 121, 0.2); color: #e8fff4; cursor: pointer;
+    }
+    .header-actions button[aria-pressed="true"] { background: rgba(233, 30, 99, 0.35); border-color: #E91E63; }
+    .main-stage { flex: 1; display: flex; min-height: 0; position: relative; }
+    .canvas-shell { flex: 1; min-width: 0; position: relative; background: #0a0a0a; }
+    #canvas { display: block; width: 100%; height: 100%; touch-action: none; vertical-align: middle; }
+    .transport-overlay {
+      position: absolute; bottom: 0; left: 0; right: 0; min-height: 44px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+      padding: 10px 16px; z-index: 10;
+      background: rgba(0, 0, 0, 0.42); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      transition: opacity 0.35s ease;
+    }
+    .transport-overlay.hidden { opacity: 0; pointer-events: none; }
+    .transport-hint { font-size: 11px; font-weight: 500; color: rgba(245, 250, 246, 0.85); letter-spacing: 0.04em; }
+    .transport-badge {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(244, 143, 177, 0.95);
+      text-decoration: none;
+    }
+    .transport-badge:hover {
+      color: #fff;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .transport-badge:focus-visible {
+      outline: 2px solid rgba(244, 143, 177, 0.85);
+      outline-offset: 3px;
+      border-radius: 2px;
+    }
+    .control-panel {
+      --panel-w: 280px;
+      --panel-mobile-h: min(46vh, 360px);
+      position: relative; flex: 0 0 var(--panel-w); width: var(--panel-w); max-width: min(var(--panel-w), 100%);
+      display: flex; flex-direction: column;
+      background: rgba(6, 18, 12, 0.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border-left: 1px solid rgba(18, 144, 121, 0.22);
+      box-shadow: -8px 0 32px rgba(0, 0, 0, 0.35);
+    }
+    .control-panel.is-panel-drag { transition: none !important; }
+    .control-panel.is-collapsed { flex-basis: 44px; width: 44px; min-width: 44px; }
+    .control-panel.is-collapsed .panel-scroll,
+    .control-panel.is-collapsed .panel-resize-handle { display: none; }
+    .panel-collapse-edge {
+      position: absolute; left: 0; top: 50%; transform: translateY(-50%); z-index: 3;
+      width: 22px; height: 48px; margin-left: -11px; padding: 0; border-radius: 8px 0 0 8px;
+      border: 1px solid rgba(233, 30, 99, 0.35); border-right: none;
+      background: rgba(8, 22, 16, 0.95); color: #e8fff4; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; line-height: 0;
+    }
+    .panel-collapse-edge__chev {
+      display: block; width: 0; height: 0; border-style: solid;
+      border-width: 5px 6px 5px 0;
+      border-color: transparent currentColor transparent transparent;
+      flex-shrink: 0; transition: transform 0.2s ease;
+    }
+    .control-panel.is-collapsed .panel-collapse-edge__chev { transform: rotate(180deg); }
+    .panel-collapse-edge:hover { background: rgba(233, 30, 99, 0.25); }
+    @media (min-width: 1024px) {
+      .control-panel { --panel-w: 256px; }
+      .panel-collapse-edge {
+        width: 20px; height: 44px;
+        margin-left: -15px;
+        border-radius: 10px 0 0 10px;
+        background: rgba(8, 22, 16, 0.96);
+        color: #e8fff4;
+        border: 1px solid rgba(233, 30, 99, 0.4);
+        border-right: none;
+        box-shadow: none;
+      }
+      .panel-collapse-edge:hover {
+        background: rgba(12, 38, 28, 0.98);
+        border-color: rgba(90, 200, 175, 0.45);
+      }
+      .panel-collapse-edge:focus-visible {
+        outline: 2px solid rgba(233, 30, 99, 0.55);
+        outline-offset: 2px;
+      }
+      .panel-collapse-edge__chev {
+        transform-origin: center;
+        border-width: 5px 0 5px 6px;
+        border-color: transparent transparent transparent currentColor;
+        transform: none;
+      }
+      .control-panel.is-collapsed .panel-collapse-edge__chev {
+        transform: rotate(180deg);
+      }
+    }
+    .panel-resize-handle {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 2;
+      margin-left: -3px;
+    }
+    .panel-resize-handle:hover { background: rgba(233, 30, 99, 0.15); }
+    .panel-mobile-resize {
+      display: none;
+    }
+    .panel-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      width: 100%;
+      min-width: 0;
+      padding: 14px 14px 20px 18px;
+      scrollbar-gutter: stable;
+      scrollbar-color: rgba(233, 30, 99, 0.45) rgba(0, 0, 0, 0.2);
+    }
+    .acc {
+      border: 1px solid rgba(18, 144, 121, 0.2); border-radius: 10px; margin-bottom: 10px;
+      background: rgba(0, 0, 0, 0.18); overflow: hidden;
+    }
+    .acc summary {
+      list-style: none; cursor: pointer; padding: 10px 12px; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase; color: #7a9a8a;
+      display: flex; align-items: center; justify-content: space-between; user-select: none;
+    }
+    .acc summary::-webkit-details-marker { display: none; }
+    .acc summary::after { content: "\25BE"; font-size: 10px; opacity: 0.6; transition: transform 0.2s; }
+    .acc:not([open]) summary::after { transform: rotate(-90deg); }
+    .acc .acc-body { padding: 0 12px 12px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+    .panel-lede-short { margin: 0 0 8px; font-size: 11px; line-height: 1.45; color: rgba(245, 250, 246, 0.72); }
+    .panel-lede { margin: 0 0 10px; font-size: 12px; line-height: 1.5; color: rgba(245, 250, 246, 0.82); }
+    .badge {
+      display: inline-block; font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 3px 7px; border-radius: 4px; background: rgba(233, 30, 99, 0.15); color: #f48fb1;
+    }
+    .presets {
+      display: flex; flex-wrap: wrap; gap: 7px; margin-top: 6px;
+      max-height: 36vh; overflow-y: auto; padding-right: 2px;
+      scrollbar-color: rgba(233,30,99,0.45) rgba(0,0,0,0.2);
+    }
+    .presets button {
+      font-family: inherit; font-size: 9px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+      padding: 7px 9px; border-radius: 6px; border: 1px solid rgba(18,144,121,0.4);
+      background: rgba(18,144,121,0.2); color: #e8fff4; cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .presets button:hover { background: rgba(233,30,99,0.22); border-color: rgba(233,30,99,0.5); }
+    .presets button.active { background: rgba(233,30,99,0.35); border-color: #E91E63; color: #fff; }
+    .doc-link { margin-top: 8px; font-size: 11px; }
+    .doc-link a { color: #64b5f6; }
+    .app-shell.focus-mode .control-panel { display: none !important; }
+    .header-actions { flex-shrink: 0; margin-left: 0; }
+    @media (max-width: 639px) {
+      .app-header {
+        flex-wrap: wrap;
+        padding: 10px 12px 12px;
+        align-items: center;
+        row-gap: 0;
+      }
+      .brand { flex: 1 1 auto; min-width: 0; order: 1; }
+      .header-toolbar { order: 2; margin-left: auto; flex: 0 0 auto; }
+      .sim-nav-trigger { display: inline-flex; }
+      .header-toolbar .header-nav {
+        display: none !important;
+      }
+    }
+    @media (max-width: 1023px) {
+      .main-stage { flex-direction: column; }
+      .canvas-shell { flex: 1; min-height: 42vh; }
+      .control-panel {
+        flex: 0 0 auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: var(--panel-mobile-h, min(46vh, 360px));
+        max-height: var(--panel-mobile-h, min(46vh, 360px));
+        min-height: 180px;
+        border-left: none; border-top: 1px solid rgba(18, 144, 121, 0.25);
+        border-radius: 14px 14px 0 0; box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+      }
+      .control-panel.is-collapsed {
+        height: auto !important;
+        max-height: 52px !important;
+        min-height: 0;
+      }
+      .panel-resize-handle { display: none; }
+      .panel-mobile-resize {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        min-height: 44px;
+        margin: 2px 12px 0;
+        padding: 0;
+        border-radius: 999px;
+        cursor: ns-resize;
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+        background: transparent;
+        position: relative;
+        z-index: 2;
+        overscroll-behavior: none;
+      }
+      .panel-mobile-resize::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 44px;
+        height: 5px;
+        border-radius: 3px;
+        background: rgba(18, 144, 121, 0.55);
+      }
+      .panel-mobile-resize:hover::after {
+        background: rgba(233, 30, 99, 0.55);
+      }
+      .panel-scroll {
+        padding-left: max(14px, env(safe-area-inset-left, 0px));
+        padding-right: max(14px, env(safe-area-inset-right, 0px));
+        padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+      }
+      .panel-collapse-edge { top: 8px; transform: none; margin-left: 8px; border-radius: 8px; border: 1px solid rgba(233, 30, 99, 0.35); }
+      .control-panel.is-collapsed .panel-mobile-resize { display: none; }
+    }
+  </style>
+  <link rel="stylesheet" href="/sim-theme.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <a class="brand" href="/" aria-label="Cropsy — home">
+        <span class="brand-mark">Cropsy</span>
+        <span class="brand-title">Aerial rings 3D</span>
+      </a>
+      <div class="header-toolbar">
+        <button
+          type="button"
+          class="sim-nav-trigger"
+          id="simNavOpen"
+          aria-expanded="false"
+          aria-controls="simNavDialog"
+          aria-haspopup="dialog"
+          aria-label="Open site menu"
+        >
+          Menu
+        </button>
+        <nav class="header-nav" aria-label="Site links">
+          <a href="/">Home</a>
+          <a href="/grass-crop-circle.html">Grass designer</a>
+          <a href="/demo/">Cymatics plate</a>
+          <a href="/field.html">Field preview</a>
+          <a href="/crop-circle-3d.html" aria-current="page">Rings 3D</a>
+        </nav>
+        <div class="header-actions">
+          <button type="button" id="themeToggle" class="sim-theme-toggle">&#x2600;</button>
+          <button type="button" id="focusToggle" aria-pressed="false" title="Focus mode — full-width scene">&#x25E7;</button>
+        </div>
+      </div>
+    </header>
+    <div id="simNavLayer" class="sim-nav-layer" hidden>
+      <button type="button" class="sim-nav-layer__backdrop" id="simNavBackdrop" tabindex="-1" aria-label="Close menu"></button>
+      <div class="sim-nav-layer__dialog" id="simNavDialog" role="dialog" aria-modal="true" aria-labelledby="simNavTitle" tabindex="-1">
+        <div class="sim-nav-layer__head">
+          <span class="sim-nav-layer__title" id="simNavTitle">Cropsy</span>
+          <button type="button" class="sim-nav-layer__close" id="simNavClose" aria-label="Close menu">&times;</button>
+        </div>
+        <nav class="sim-nav-layer__links" aria-label="Site links">
+          <a href="/">Home</a>
+          <a href="/grass-crop-circle.html">Grass designer</a>
+          <a href="/demo/">Cymatics plate</a>
+          <a href="/field.html">Field preview</a>
+          <a href="/crop-circle-3d.html" aria-current="page">Rings 3D</a>
+        </nav>
+      </div>
+    </div>
+    <div class="main-stage">
+      <div class="canvas-shell" id="canvasShell">
+        <canvas id="canvas" aria-label="Aerial-style formation rings preview"></canvas>
+        <div class="transport-overlay" id="transportOverlay" role="status">
+          <span class="transport-hint">Drag to orbit · scroll to zoom · compare with grass designer</span>
+          <a
+            class="transport-badge"
+            href="https://nocturnal.cloud"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="https://nocturnal.cloud"
+            aria-label="Built by Nocturnal Labs — nocturnal.cloud (opens in a new tab)"
+            >Built by Nocturnal Labs</a>
+        </div>
+      </div>
+      <aside class="control-panel" id="controlPanel">
+        <button type="button" class="panel-collapse-edge" id="panelCollapse" aria-expanded="true" title="Collapse or expand (])"><span class="panel-collapse-edge__chev" aria-hidden="true"></span></button>
+        <div class="panel-resize-handle" id="panelResize" aria-hidden="true"></div>
+        <div
+          class="panel-mobile-resize"
+          id="panelMobileResize"
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Drag to resize panel height"
+        ></div>
+        <div class="panel-scroll">
+          <details class="acc" open>
+            <summary>Formation</summary>
+            <div class="acc-body">
+              <p class="panel-lede-short">Same presets as the grass field designer (<strong>crop-catelog.md</strong> §1–48 + extras) — toruses and tubes along circles, lines, polygons, and arcs so you can judge ring hierarchy without ground texture.</p>
+              <span class="badge">Design preview</span>
+              <div class="presets" id="presets" role="group" aria-label="Formation preset"></div>
+            </div>
+          </details>
+          <details class="acc">
+            <summary>About</summary>
+            <div class="acc-body">
+              <p class="panel-lede">Use this view to sanity-check nested radii and symmetry before you commit to a field layout. Geometry matches <a href="/grass-crop-circle.html">the grass designer</a>.</p>
+            </div>
+          </details>
+        </div>
+      </aside>
+    </div>
+  </div>
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+    import { FIELD_PATTERNS_CORE as FIELD_PATTERNS } from "/crop-field-patterns.mjs";
+    import { initSimTheme } from "/sim-theme.mjs";
+
+    const canvas = document.getElementById("canvas");
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x060608, 1);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x060608, 0.028);
+
+    initSimTheme(document.getElementById("themeToggle"));
+
+    const camera = new THREE.PerspectiveCamera(48, 1.2, 0.2, 320);
+    camera.position.set(4.5, 28, 4.5);
+
+    const controls = new OrbitControls(camera, canvas);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2 - 0.06;
+    controls.minDistance = 4;
+    controls.maxDistance = 120;
+    controls.target.set(0, 0, 0);
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    controls.autoRotate = !reduceMotion;
+    controls.autoRotateSpeed = 0.32;
+    controls.update();
+
+    const canvasShell = document.getElementById("canvasShell");
+    const controlPanel = document.getElementById("controlPanel");
+    const appShell = document.querySelector(".app-shell");
+
+    function syncSize() {
+      const rect = canvasShell.getBoundingClientRect();
+      const w = Math.max(1, Math.round(rect.width));
+      const h = Math.max(1, Math.round(rect.height));
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h, false);
+    }
+    let syncSizeRaf = 0;
+    function scheduleSyncSize() {
+      cancelAnimationFrame(syncSizeRaf);
+      syncSizeRaf = requestAnimationFrame(() => {
+        syncSizeRaf = 0;
+        syncSize();
+      });
+    }
+    new ResizeObserver(() => scheduleSyncSize()).observe(canvasShell);
+
+    const transportOverlay = document.getElementById("transportOverlay");
+    let transportTimer = 0;
+    function pokeTransport() {
+      transportOverlay.classList.remove("hidden");
+      clearTimeout(transportTimer);
+      transportTimer = setTimeout(() => transportOverlay.classList.add("hidden"), 3200);
+    }
+    canvasShell.addEventListener("mousemove", pokeTransport);
+    canvasShell.addEventListener("touchstart", pokeTransport, { passive: true });
+    pokeTransport();
+
+    const LS_PANEL = "metalRingsPanelW";
+    const LS_COLLAPSED = "metalRingsPanelCollapsed";
+    const LS_FOCUS = "metalRingsFocus";
+    const savedW = localStorage.getItem(LS_PANEL);
+    if (savedW) {
+      const n = parseInt(savedW, 10);
+      if (n >= 240 && n <= 400) controlPanel.style.setProperty("--panel-w", `${n}px`);
+    }
+    function setPanelCollapsed(collapsed) {
+      controlPanel.classList.toggle("is-collapsed", collapsed);
+      document.getElementById("panelCollapse").setAttribute("aria-expanded", String(!collapsed));
+      localStorage.setItem(LS_COLLAPSED, collapsed ? "1" : "0");
+      scheduleSyncSize();
+    }
+    document.getElementById("panelCollapse").addEventListener("click", () => {
+      setPanelCollapsed(!controlPanel.classList.contains("is-collapsed"));
+    });
+    let resizeActive = false;
+    document.getElementById("panelResize").addEventListener("mousedown", (e) => {
+      if (window.matchMedia("(max-width: 1023px)").matches) return;
+      resizeActive = true;
+      controlPanel.classList.add("is-panel-drag");
+      e.preventDefault();
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!resizeActive) return;
+      const newW = Math.min(400, Math.max(240, window.innerWidth - e.clientX));
+      controlPanel.style.setProperty("--panel-w", `${newW}px`);
+      localStorage.setItem(LS_PANEL, String(Math.round(newW)));
+      scheduleSyncSize();
+    });
+    window.addEventListener("mouseup", () => {
+      if (resizeActive) {
+        resizeActive = false;
+        controlPanel.classList.remove("is-panel-drag");
+        scheduleSyncSize();
+      }
+    });
+    function setFocusMode(on) {
+      appShell.classList.toggle("focus-mode", on);
+      document.getElementById("focusToggle").setAttribute("aria-pressed", String(on));
+      localStorage.setItem(LS_FOCUS, on ? "1" : "0");
+      scheduleSyncSize();
+    }
+    document.getElementById("focusToggle").addEventListener("click", () =>
+      setFocusMode(!appShell.classList.contains("focus-mode"))
+    );
+    if (localStorage.getItem(LS_FOCUS) === "1") setFocusMode(true);
+    else if (localStorage.getItem(LS_COLLAPSED) === "1") setPanelCollapsed(true);
+
+    const LS_PANEL_MOBILE_H = "metalRingsPanelMobileH";
+    const panelMobileResize = document.getElementById("panelMobileResize");
+    const mqMobilePanel = window.matchMedia("(max-width: 1023px)");
+    function applyMobilePanelHeight(px) {
+      if (!mqMobilePanel.matches) return;
+      const vh = window.innerHeight;
+      const h = Math.round(Math.max(200, Math.min(px, vh * 0.88)));
+      controlPanel.style.setProperty("--panel-mobile-h", `${h}px`);
+      localStorage.setItem(LS_PANEL_MOBILE_H, String(h));
+    }
+    function initMobilePanelHeight() {
+      if (!mqMobilePanel.matches) return;
+      const raw = localStorage.getItem(LS_PANEL_MOBILE_H);
+      const vh = window.innerHeight;
+      const def = Math.min(Math.round(vh * 0.46), 420);
+      const parsed = raw ? parseInt(raw, 10) : NaN;
+      applyMobilePanelHeight(Number.isFinite(parsed) ? parsed : def);
+    }
+    initMobilePanelHeight();
+    window.addEventListener("resize", () => {
+      if (mqMobilePanel.matches) initMobilePanelHeight();
+    });
+    let mobilePanelDrag = false;
+    let mobilePanelStartY = 0;
+    let mobilePanelStartH = 0;
+    if (panelMobileResize) {
+      function onMobilePanelPointerMove(e) {
+        if (!mobilePanelDrag) return;
+        e.preventDefault();
+        const dy = e.clientY - mobilePanelStartY;
+        applyMobilePanelHeight(mobilePanelStartH - dy);
+        scheduleSyncSize();
+      }
+      function endMobilePanelDrag() {
+        if (!mobilePanelDrag) return;
+        mobilePanelDrag = false;
+        document.removeEventListener("pointermove", onMobilePanelPointerMove);
+        document.removeEventListener("pointerup", endMobilePanelDrag);
+        document.removeEventListener("pointercancel", endMobilePanelDrag);
+        scheduleSyncSize();
+      }
+      panelMobileResize.addEventListener("pointerdown", (e) => {
+        if (!mqMobilePanel.matches || controlPanel.classList.contains("is-collapsed")) return;
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        mobilePanelDrag = true;
+        mobilePanelStartY = e.clientY;
+        mobilePanelStartH = controlPanel.getBoundingClientRect().height;
+        document.addEventListener("pointermove", onMobilePanelPointerMove, { passive: false });
+        document.addEventListener("pointerup", endMobilePanelDrag);
+        document.addEventListener("pointercancel", endMobilePanelDrag);
+      });
+    }
+    (function simNavModal() {
+      const openBtn = document.getElementById("simNavOpen");
+      const layer = document.getElementById("simNavLayer");
+      const backdrop = document.getElementById("simNavBackdrop");
+      const closeBtn = document.getElementById("simNavClose");
+      const dialog = document.getElementById("simNavDialog");
+      if (!openBtn || !layer || !dialog) return;
+      function openNav() {
+        layer.removeAttribute("hidden");
+        openBtn.setAttribute("aria-expanded", "true");
+        document.documentElement.style.overflow = "hidden";
+        closeBtn.focus();
+      }
+      function closeNav() {
+        layer.setAttribute("hidden", "");
+        openBtn.setAttribute("aria-expanded", "false");
+        document.documentElement.style.overflow = "";
+        openBtn.focus();
+      }
+      openBtn.addEventListener("click", () => openNav());
+      if (backdrop) backdrop.addEventListener("click", () => closeNav());
+      if (closeBtn) closeBtn.addEventListener("click", () => closeNav());
+      dialog.querySelectorAll(".sim-nav-layer__links a").forEach((a) => {
+        a.addEventListener("click", () => closeNav());
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !layer.hasAttribute("hidden")) closeNav();
+      });
+    })();
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "]" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const tag = e.target && e.target.tagName;
+        if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+        e.preventDefault();
+        setPanelCollapsed(!controlPanel.classList.contains("is-collapsed"));
+      }
+    });
+
+    scene.add(new THREE.AmbientLight(0x404060, 0.38));
+    const sun = new THREE.DirectionalLight(0xfff5e6, 1.08);
+    sun.position.set(14, 28, 12);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.near = 1;
+    sun.shadow.camera.far = 90;
+    sun.shadow.camera.left = -22;
+    sun.shadow.camera.right = 22;
+    sun.shadow.camera.top = 22;
+    sun.shadow.camera.bottom = -22;
+    scene.add(sun);
+    const rim = new THREE.DirectionalLight(0xe91ece, 0.24);
+    rim.position.set(-12, 8, -10);
+    scene.add(rim);
+
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(15.5, 80),
+      new THREE.MeshStandardMaterial({
+        color: 0x0d1a14,
+        metalness: 0.12,
+        roughness: 0.92,
+      })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const formation = new THREE.Group();
+    scene.add(formation);
+
+    const matTeal = new THREE.MeshStandardMaterial({
+      color: 0x129079,
+      metalness: 0.48,
+      roughness: 0.36,
+      emissive: 0x021810,
+      emissiveIntensity: 0.38,
+    });
+    const matPink = new THREE.MeshStandardMaterial({
+      color: 0xc2185b,
+      metalness: 0.42,
+      roughness: 0.38,
+      emissive: 0x280510,
+      emissiveIntensity: 0.42,
+    });
+
+    let ringMeshes = [];
+    let meshSerial = 0;
+    const up = new THREE.Vector3(0, 1, 0);
+    const _vDir = new THREE.Vector3();
+
+    function tubeForCircle(radius) {
+      return Math.max(0.022, Math.min(0.095, radius * 0.028));
+    }
+
+    function nextMat() {
+      return meshSerial++ % 2 === 0 ? matTeal : matPink;
+    }
+
+    function layerY() {
+      return 0.07 + meshSerial * 0.00014;
+    }
+
+    function addMesh(mesh) {
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      formation.add(mesh);
+      ringMeshes.push(mesh);
+    }
+
+    function addCircleRing(cx, cz, r) {
+      if (r < 0.04) return;
+      const tube = tubeForCircle(r);
+      const tubular = Math.min(160, Math.max(40, Math.round(r * 14)));
+      const mesh = new THREE.Mesh(new THREE.TorusGeometry(r, tube, 12, tubular), nextMat());
+      mesh.rotation.x = Math.PI / 2;
+      mesh.position.set(cx, layerY(), cz);
+      addMesh(mesh);
+    }
+
+    function addLineMetal(x1, z1, x2, z2) {
+      const dx = x2 - x1;
+      const dz = z2 - z1;
+      const len = Math.hypot(dx, dz);
+      if (len < 0.02) return;
+      const midX = (x1 + x2) / 2;
+      const midZ = (z1 + z2) / 2;
+      const tube = Math.max(0.02, Math.min(0.07, len * 0.018));
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(tube, tube, len, 8), nextMat());
+      mesh.position.set(midX, layerY(), midZ);
+      _vDir.set(dx, 0, dz).normalize();
+      mesh.quaternion.setFromUnitVectors(up, _vDir);
+      addMesh(mesh);
+    }
+
+    function addPolygonEdges(shape) {
+      const { sides, r, offset } = shape;
+      for (let s = 0; s < sides; s++) {
+        const a1 = (s / sides) * Math.PI * 2 + offset;
+        const a2 = ((s + 1) / sides) * Math.PI * 2 + offset;
+        const x1 = r * Math.cos(a1),
+          z1 = r * Math.sin(a1);
+        const x2 = r * Math.cos(a2),
+          z2 = r * Math.sin(a2);
+        addLineMetal(x1, z1, x2, z2);
+      }
+    }
+
+    function addArcTube(cx, cz, r, startAngle, endAngle) {
+      let a0 = startAngle;
+      let a1 = endAngle;
+      let sweep = a1 - a0;
+      while (sweep < 0) sweep += Math.PI * 2;
+      while (sweep > Math.PI * 2 - 1e-6) sweep -= Math.PI * 2;
+      if (sweep < 1e-4) return;
+      const segs = Math.max(10, Math.min(96, Math.ceil(sweep * r * 2.2)));
+      const y0 = layerY();
+      const pts = [];
+      for (let i = 0; i <= segs; i++) {
+        const t = i / segs;
+        const a = a0 + sweep * t;
+        pts.push(new THREE.Vector3(cx + r * Math.cos(a), y0, cz + r * Math.sin(a)));
+      }
+      const curve = new THREE.CatmullRomCurve3(pts);
+      const tubeR = tubeForCircle(r) * 0.95;
+      const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, segs, tubeR, 7, false), nextMat());
+      addMesh(mesh);
+    }
+
+    function clearFormationChildren() {
+      for (const m of ringMeshes) {
+        formation.remove(m);
+        m.geometry.dispose();
+      }
+      ringMeshes = [];
+      meshSerial = 0;
+    }
+
+    function buildFormation(patternIndex) {
+      clearFormationChildren();
+      const shapes = FIELD_PATTERNS[patternIndex].generate(1.0);
+      for (const sh of shapes) {
+        switch (sh.type) {
+          case "circle":
+            addCircleRing(sh.cx, sh.cz, sh.r);
+            break;
+          case "line":
+            addLineMetal(sh.x1, sh.z1, sh.x2, sh.z2);
+            break;
+          case "polygon":
+            addPolygonEdges(sh);
+            break;
+          case "arc":
+            addArcTube(sh.cx, sh.cz, sh.r, sh.startAngle, sh.endAngle);
+            break;
+          default:
+            break;
+        }
+      }
+    }
+
+    let design = 0;
+    const presetsEl = document.getElementById("presets");
+    FIELD_PATTERNS.forEach((p, i) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = p.name;
+      if (i === 0) btn.classList.add("active");
+      btn.addEventListener("click", () => {
+        design = i;
+        presetsEl.querySelectorAll("button").forEach((b) => b.classList.toggle("active", b === btn));
+        buildFormation(design);
+      });
+      presetsEl.appendChild(btn);
+    });
+
+    buildFormation(0);
+
+    window.addEventListener("resize", scheduleSyncSize);
+    scheduleSyncSize();
+    requestAnimationFrame(scheduleSyncSize);
+
+    let t0 = performance.now();
+    function frame(now) {
+      const t = (now - t0) * 0.001;
+      formation.rotation.y = t * 0.06;
+      formation.position.y = Math.sin(t * 0.32) * 0.05;
+      for (let i = 0; i < ringMeshes.length; i++) {
+        const base = 0.07 + (i + 1) * 0.00014;
+        ringMeshes[i].position.y = base + Math.sin(t * 0.85 + i * 0.11) * 0.014;
+      }
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

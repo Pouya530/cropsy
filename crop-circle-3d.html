@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CircleTone — 3D Crop Circle Simulator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,500;1,300&family=JetBrains+Mono:wght@300;400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #050505;
+    --text: #e8e4dc;
+    --accent: #7fba6a;
+    --accent-dim: #3a5a2e;
+    --gold: #c9a84c;
+    --panel-bg: rgba(8, 8, 8, 0.85);
+    --border: rgba(127, 186, 106, 0.15);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Cormorant Garamond', serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  #canvas-container {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+  }
+
+  canvas { display: block; width: 100% !important; height: 100% !important; }
+
+  /* UI Overlay */
+  .ui-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .ui-layer > * { pointer-events: auto; }
+
+  /* Title */
+  .title-bar {
+    position: absolute;
+    top: 24px;
+    left: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .title-bar h1 {
+    font-size: 28px;
+    font-weight: 300;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: var(--text);
+    text-shadow: 0 0 40px rgba(127,186,106,0.3);
+  }
+
+  .title-bar .sub {
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 300;
+    color: var(--accent-dim);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  /* Pattern selector panel */
+  .pattern-panel {
+    position: absolute;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    padding: 14px 20px;
+    background: var(--panel-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+  }
+
+  .pattern-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    color: var(--text);
+    opacity: 0.5;
+    min-width: 80px;
+  }
+
+  .pattern-btn:hover { opacity: 0.8; border-color: var(--border); }
+  .pattern-btn.active {
+    opacity: 1;
+    border-color: var(--accent);
+    background: rgba(127,186,106,0.08);
+    box-shadow: 0 0 20px rgba(127,186,106,0.1), inset 0 0 20px rgba(127,186,106,0.05);
+  }
+
+  .pattern-btn svg { width: 36px; height: 36px; }
+
+  .pattern-btn .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 300;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* Info panel */
+  .info-panel {
+    position: absolute;
+    top: 24px;
+    right: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: right;
+  }
+
+  .info-panel .stat {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 300;
+    color: var(--accent-dim);
+    letter-spacing: 1px;
+  }
+
+  .info-panel .stat span { color: var(--accent); }
+
+  /* Frequency readout */
+  .freq-display {
+    position: absolute;
+    bottom: 110px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+
+  .freq-display .hz {
+    font-size: 42px;
+    font-weight: 300;
+    color: var(--gold);
+    letter-spacing: 2px;
+    text-shadow: 0 0 30px rgba(201,168,76,0.3);
+  }
+
+  .freq-display .hz-unit {
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--accent-dim);
+    margin-left: 4px;
+    letter-spacing: 3px;
+  }
+
+  .freq-display .mode {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent-dim);
+    letter-spacing: 2px;
+    margin-top: 2px;
+  }
+
+  .evidence-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    background: rgba(96, 165, 250, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(96, 165, 250, 0.2);
+    margin-top: 6px;
+  }
+
+  /* Loading */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    transition: opacity 0.8s ease;
+  }
+
+  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1.2s linear infinite;
+  }
+
+  .loading-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent-dim);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Transition */
+  .pattern-transition {
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    background: radial-gradient(circle at center, rgba(127,186,106,0.05) 0%, transparent 70%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+
+  .pattern-transition.flash { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Generating field</div>
+</div>
+
+<div class="pattern-transition" id="transition-flash"></div>
+
+<div id="canvas-container"></div>
+
+<div class="ui-layer">
+  <div class="title-bar">
+    <h1>CircleTone</h1>
+    <div class="sub">3D Crop Circle Simulator</div>
+  </div>
+
+  <div class="info-panel" id="info-panel">
+    <div class="stat">Symmetry <span id="sym-order">D6</span></div>
+    <div class="stat">Blades <span id="blade-count">—</span></div>
+    <div class="stat">Pattern <span id="pattern-name">Flower of Life</span></div>
+  </div>
+
+  <div class="freq-display">
+    <div><span class="hz" id="freq-val">174</span><span class="hz-unit">Hz</span></div>
+    <div class="mode" id="freq-mode">mode (3, 5)</div>
+    <div class="evidence-badge">Creative interpretation</div>
+  </div>
+
+  <div class="pattern-panel" id="pattern-panel"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ============================================================
+// CROP CIRCLE PATTERN DEFINITIONS
+// ============================================================
+
+const PATTERNS = [
+  {
+    id: 'flower-of-life',
+    name: 'Flower of Life',
+    symmetry: 'D6',
+    freq: 174,
+    mode: '(3, 5)',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="0.6">
+      <circle cx="18" cy="18" r="6"/>
+      <circle cx="18" cy="12" r="6"/>
+      <circle cx="18" cy="24" r="6"/>
+      <circle cx="23.2" cy="15" r="6"/>
+      <circle cx="23.2" cy="21" r="6"/>
+      <circle cx="12.8" cy="15" r="6"/>
+      <circle cx="12.8" cy="21" r="6"/>
+    </svg>`,
+    generate: (flatten) => {
+      const paths = [];
+      const r = 3.5;
+      // Central + 6 surrounding + 12 outer
+      const centers = [[0,0]];
+      for (let i = 0; i < 6; i++) {
+        const a = i * Math.PI / 3;
+        centers.push([r * Math.cos(a), r * Math.sin(a)]);
+      }
+      for (let i = 0; i < 6; i++) {
+        const a = i * Math.PI / 3 + Math.PI / 6;
+        centers.push([r * 1.73 * Math.cos(a), r * 1.73 * Math.sin(a)]);
+      }
+      for (let i = 0; i < 6; i++) {
+        const a = i * Math.PI / 3;
+        centers.push([r * 2 * Math.cos(a), r * 2 * Math.sin(a)]);
+      }
+      centers.forEach(([cx, cz]) => {
+        paths.push({ type: 'circle', cx, cz, r, flatten });
+      });
+      // Outer boundary
+      paths.push({ type: 'circle', cx: 0, cz: 0, r: r * 2.5, flatten: flatten * 0.3 });
+      return paths;
+    }
+  },
+  {
+    id: 'seed-of-life',
+    name: 'Seed of Life',
+    symmetry: 'D6',
+    freq: 396,
+    mode: '(4, 6)',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="0.7">
+      <circle cx="18" cy="18" r="7"/>
+      <circle cx="18" cy="11" r="7"/>
+      <circle cx="18" cy="25" r="7"/>
+      <circle cx="24" cy="14.5" r="7"/>
+      <circle cx="24" cy="21.5" r="7"/>
+      <circle cx="12" cy="14.5" r="7"/>
+      <circle cx="12" cy="21.5" r="7"/>
+    </svg>`,
+    generate: (flatten) => {
+      const paths = [];
+      const r = 4.5;
+      paths.push({ type: 'circle', cx: 0, cz: 0, r, flatten });
+      for (let i = 0; i < 6; i++) {
+        const a = i * Math.PI / 3;
+        paths.push({ type: 'circle', cx: r * Math.cos(a), cz: r * Math.sin(a), r, flatten });
+      }
+      paths.push({ type: 'circle', cx: 0, cz: 0, r: r * 1.8, flatten: flatten * 0.2 });
+      return paths;
+    }
+  },
+  {
+    id: 'six-fold-star',
+    name: 'Hexagram',
+    symmetry: 'D6',
+    freq: 528,
+    mode: '(5, 7)',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="0.7">
+      <polygon points="18,4 28,22 8,22"/>
+      <polygon points="18,32 8,14 28,14"/>
+      <circle cx="18" cy="18" r="12"/>
+    </svg>`,
+    generate: (flatten) => {
+      const paths = [];
+      const r = 7;
+      // Two triangles
+      paths.push({ type: 'polygon', sides: 3, r: r, offset: -Math.PI/2, flatten });
+      paths.push({ type: 'polygon', sides: 3, r: r, offset: Math.PI/2, flatten });
+      // Inner hexagon
+      paths.push({ type: 'polygon', sides: 6, r: r * 0.58, offset: 0, flatten: flatten * 0.8 });
+      // Concentric rings
+      paths.push({ type: 'circle', cx: 0, cz: 0, r: r * 1.15, flatten: flatten * 0.4 });
+      paths.push({ type: 'circle', cx: 0, cz: 0, r: r * 0.35, flatten: flatten * 0.9 });
+      // Centre dot
+      paths.push({ type: 'circle', cx: 0, cz: 0, r: 0.5, flatten: flatten * 1.2 });
+      return paths;
+    }
+  },
+  {
+    id: 'fibonacci-spiral',
+    name: 'Fibonacci',
+    symmetry: 'C1',
+    freq: 639,
+    mode: '(6, 8)',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="0.7">
+      <path d="M18 18 Q18 10 26 10 Q34 10 34 18 Q34 30 22 34 Q10 38 6 26 Q2 14 14 6 Q22 1 30 6"/>
+      <circle cx="18" cy="18" r="14"/>
+    </svg>`,
+    generate: (flatten) => {
+      const paths = [];
+      // Fibonacci spiral as series of arcs
+      let r = 0.8;
+      const phi = 1.618;
+      for (let i = 0; i < 10; i++) {
+        const angle = i * Math.PI / 2;
+        const cx = r * 0.3 * Math.cos(angle + Math.PI);
+        const cz = r * 0.3 * Math.sin(angle + Math.PI);
+        paths.push({ type: 'arc', cx, cz, r, startAngle: angle, endAngle: angle + Math.PI/2, flatten });
+        r *= phi * 0.6;
+      }
+      // Boundary circle
+      paths.push({ type: 'circle', cx: 0, cz: 0, r: 8, flatten: flatten * 0.3 });
+      // Centre
+      paths.push({ type: 'circle', cx: 0, cz: 0, r: 0.4, flatten: flatten * 1.2 });
+      return paths;
+    }
+  },
+  {
+    id: 'vesica-piscis',
+    name: 'Vesica Piscis',
+    symmetry: 'D2',
+    freq: 852,
+    mode: '(8, 10)',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="0.7">
+      <circle cx="14" cy="18" r="10"/>
+      <circle cx="22" cy="18" r="10"/>
+    </svg>`,
+    generate: (flatten) => {
+      const paths = [];
+      const r = 5;
+      const offset = r * 0.5;
+      paths.push({ type: 'circle', cx: -offset, cz: 0, r, flatten });
+      paths.push({ type: 'circle', cx: offset, cz: 0, r, flatten });
+      // Inner almond (the vesica)
+      paths.push({ type: 'circle', cx: 0, cz: 0, r: r * 0.45, flatten: flatten * 0.7 });
+      // Outer ring
+      paths.push({ type: 'circle', cx: 0, cz: 0, r: r * 1.6, flatten: flatten * 0.2 });
+      // Vertical axis
+      paths.push({ type: 'line', x1: 0, z1: -r * 0.87, x2: 0, z2: r * 0.87, flatten: flatten * 0.6 });
+      return paths;
+    }
+  },
+  {
+    id: 'metatron',
+    name: 'Metatron',
+    symmetry: 'D6',
+    freq: 963,
+    mode: '(9, 11)',
+    icon: `<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="0.5">
+      <circle cx="18" cy="18" r="2"/>
+      <circle cx="18" cy="10" r="2"/><circle cx="18" cy="26" r="2"/>
+      <circle cx="24.9" cy="14" r="2"/><circle cx="24.9" cy="22" r="2"/>
+      <circle cx="11.1" cy="14" r="2"/><circle cx="11.1" cy="22" r="2"/>
+      <circle cx="18" cy="4" r="2"/><circle cx="18" cy="32" r="2"/>
+      <circle cx="30.1" cy="11" r="2"/><circle cx="30.1" cy="25" r="2"/>
+      <circle cx="5.9" cy="11" r="2"/><circle cx="5.9" cy="25" r="2"/>
+      <line x1="18" y1="4" x2="30.1" y2="11" stroke-width="0.3"/>
+      <line x1="30.1" y1="11" x2="30.1" y2="25" stroke-width="0.3"/>
+      <line x1="30.1" y1="25" x2="18" y2="32" stroke-width="0.3"/>
+      <line x1="18" y1="32" x2="5.9" y2="25" stroke-width="0.3"/>
+      <line x1="5.9" y1="25" x2="5.9" y2="11" stroke-width="0.3"/>
+      <line x1="5.9" y1="11" x2="18" y2="4" stroke-width="0.3"/>
+    </svg>`,
+    generate: (flatten) => {
+      const paths = [];
+      // 13 circles: 1 centre + 6 inner ring + 6 outer ring
+      const innerR = 3.5;
+      const outerR = 7;
+      const circR = 1.8;
+      paths.push({ type: 'circle', cx: 0, cz: 0, r: circR, flatten });
+      for (let i = 0; i < 6; i++) {
+        const a = i * Math.PI / 3;
+        paths.push({ type: 'circle', cx: innerR * Math.cos(a), cz: innerR * Math.sin(a), r: circR, flatten });
+        paths.push({ type: 'circle', cx: outerR * Math.cos(a), cz: outerR * Math.sin(a), r: circR, flatten });
+      }
+      // Connecting lines (all centre-to-centre connections)
+      const allCenters = [[0,0]];
+      for (let i = 0; i < 6; i++) {
+        const a = i * Math.PI / 3;
+        allCenters.push([innerR * Math.cos(a), innerR * Math.sin(a)]);
+        allCenters.push([outerR * Math.cos(a), outerR * Math.sin(a)]);
+      }
+      for (let i = 0; i < allCenters.length; i++) {
+        for (let j = i + 1; j < allCenters.length; j++) {
+          const dx = allCenters[i][0] - allCenters[j][0];
+          const dz = allCenters[i][1] - allCenters[j][1];
+          const dist = Math.sqrt(dx*dx + dz*dz);
+          if (dist < outerR * 1.2) {
+            paths.push({ type: 'line', x1: allCenters[i][0], z1: allCenters[i][1], x2: allCenters[j][0], z2: allCenters[j][1], flatten: flatten * 0.5 });
+          }
+        }
+      }
+      // Outer boundary
+      paths.push({ type: 'circle', cx: 0, cz: 0, r: outerR + circR + 1, flatten: flatten * 0.2 });
+      return paths;
+    }
+  }
+];
+
+// ============================================================
+// THREE.JS SCENE
+// ============================================================
+
+let scene, camera, renderer, clock;
+let grassMesh, groundMesh;
+let activePattern = PATTERNS[0];
+let grassPositions, grassBaseY;
+let GRASS_COUNT = 180000;
+let fieldRadius = 14;
+let animationId;
+let flattenMap = null;
+let targetFlattenMap = null;
+let flattenTransitionSpeed = 2.0;
+let windTime = 0;
+
+function init() {
+  clock = new THREE.Clock();
+  scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x050505, 0.012);
+  scene.background = new THREE.Color(0x050505);
+
+  camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+  camera.position.set(0, 18, 22);
+  camera.lookAt(0, 0, 0);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.9;
+  document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+  // Lighting — moonlit field
+  const ambient = new THREE.AmbientLight(0x1a2030, 0.6);
+  scene.add(ambient);
+
+  const moonLight = new THREE.DirectionalLight(0x8899bb, 0.8);
+  moonLight.position.set(15, 25, 10);
+  moonLight.castShadow = true;
+  moonLight.shadow.mapSize.set(2048, 2048);
+  moonLight.shadow.camera.left = -20;
+  moonLight.shadow.camera.right = 20;
+  moonLight.shadow.camera.top = 20;
+  moonLight.shadow.camera.bottom = -20;
+  scene.add(moonLight);
+
+  // Subtle green uplighting from below
+  const upLight = new THREE.PointLight(0x4a7a3a, 0.4, 30);
+  upLight.position.set(0, -1, 0);
+  scene.add(upLight);
+
+  // Rim light
+  const rimLight = new THREE.DirectionalLight(0x667799, 0.3);
+  rimLight.position.set(-10, 5, -15);
+  scene.add(rimLight);
+
+  // Ground plane
+  const groundGeo = new THREE.CircleGeometry(50, 64);
+  const groundMat = new THREE.MeshStandardMaterial({
+    color: 0x1a2a10,
+    roughness: 0.95,
+    metalness: 0.0,
+  });
+  groundMesh = new THREE.Mesh(groundGeo, groundMat);
+  groundMesh.rotation.x = -Math.PI / 2;
+  groundMesh.position.y = -0.05;
+  groundMesh.receiveShadow = true;
+  scene.add(groundMesh);
+
+  createGrass();
+  createCropCircleGlow();
+
+  // Stars
+  const starsGeo = new THREE.BufferGeometry();
+  const starPositions = new Float32Array(500 * 3);
+  for (let i = 0; i < 500; i++) {
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.random() * Math.PI * 0.4 + 0.1;
+    const dist = 80 + Math.random() * 40;
+    starPositions[i*3] = dist * Math.sin(phi) * Math.cos(theta);
+    starPositions[i*3+1] = dist * Math.cos(phi);
+    starPositions[i*3+2] = dist * Math.sin(phi) * Math.sin(theta);
+  }
+  starsGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+  const starsMat = new THREE.PointsMaterial({ color: 0xccccdd, size: 0.15, sizeAttenuation: true });
+  scene.add(new THREE.Points(starsGeo, starsMat));
+
+  // Flatten map
+  flattenMap = new Float32Array(GRASS_COUNT).fill(0);
+  targetFlattenMap = new Float32Array(GRASS_COUNT).fill(0);
+
+  applyPattern(activePattern, false);
+  buildPatternButtons();
+
+  window.addEventListener('resize', onResize);
+
+  // Hide loading
+  setTimeout(() => document.getElementById('loading').classList.add('hidden'), 800);
+
+  animate();
+}
+
+function createGrass() {
+  const bladeGeo = new THREE.BufferGeometry();
+
+  // Each blade: a tapered quad (2 triangles, 4 vertices, 6 indices)
+  const bladeVerts = new Float32Array([
+    -0.04, 0, 0,
+     0.04, 0, 0,
+    -0.015, 0.5, 0,
+     0.015, 0.5, 0,
+     0.0, 0.7, 0,
+  ]);
+  const bladeIdx = [0,1,2, 1,3,2, 2,3,4];
+  bladeGeo.setAttribute('position', new THREE.BufferAttribute(bladeVerts, 3));
+  bladeGeo.setIndex(bladeIdx);
+
+  const instancedGeo = new THREE.InstancedBufferGeometry();
+  instancedGeo.index = bladeGeo.index;
+  instancedGeo.attributes.position = bladeGeo.attributes.position;
+
+  // Instance data
+  const offsets = new Float32Array(GRASS_COUNT * 3);
+  const scales = new Float32Array(GRASS_COUNT);
+  const rotations = new Float32Array(GRASS_COUNT);
+  const phases = new Float32Array(GRASS_COUNT);
+  const colors = new Float32Array(GRASS_COUNT * 3);
+
+  grassPositions = new Float32Array(GRASS_COUNT * 2); // store x, z
+
+  for (let i = 0; i < GRASS_COUNT; i++) {
+    // Distribute in a circle with slight density variation
+    const angle = Math.random() * Math.PI * 2;
+    const dist = Math.sqrt(Math.random()) * fieldRadius;
+    const x = Math.cos(angle) * dist;
+    const z = Math.sin(angle) * dist;
+
+    offsets[i*3] = x;
+    offsets[i*3+1] = 0;
+    offsets[i*3+2] = z;
+
+    grassPositions[i*2] = x;
+    grassPositions[i*2+1] = z;
+
+    scales[i] = 0.6 + Math.random() * 0.8;
+    rotations[i] = Math.random() * Math.PI * 2;
+    phases[i] = Math.random() * Math.PI * 2;
+
+    // Colour variation: green with golden tips
+    const greenVar = 0.15 + Math.random() * 0.2;
+    colors[i*3] = 0.12 + Math.random() * 0.08;
+    colors[i*3+1] = greenVar + 0.15;
+    colors[i*3+2] = 0.04 + Math.random() * 0.04;
+  }
+
+  instancedGeo.setAttribute('offset', new THREE.InstancedBufferAttribute(offsets, 3));
+  instancedGeo.setAttribute('scale', new THREE.InstancedBufferAttribute(scales, 1));
+  instancedGeo.setAttribute('rotation', new THREE.InstancedBufferAttribute(rotations, 1));
+  instancedGeo.setAttribute('phase', new THREE.InstancedBufferAttribute(phases, 1));
+  instancedGeo.setAttribute('color', new THREE.InstancedBufferAttribute(colors, 3));
+  instancedGeo.setAttribute('flatten', new THREE.InstancedBufferAttribute(new Float32Array(GRASS_COUNT).fill(0), 1));
+
+  const grassMat = new THREE.ShaderMaterial({
+    uniforms: {
+      u_time: { value: 0 },
+      u_windStrength: { value: 0.3 },
+      u_windFreq: { value: 1.5 },
+    },
+    vertexShader: `
+      attribute vec3 offset;
+      attribute float scale;
+      attribute float rotation;
+      attribute float phase;
+      attribute vec3 color;
+      attribute float flatten;
+
+      uniform float u_time;
+      uniform float u_windStrength;
+      uniform float u_windFreq;
+
+      varying vec3 vColor;
+      varying float vHeight;
+      varying float vFlatten;
+
+      void main() {
+        vFlatten = flatten;
+        float heightFactor = position.y;
+        vHeight = heightFactor;
+
+        // Scale blade
+        float bladeScale = scale * mix(1.0, 0.08, flatten);
+        vec3 pos = position;
+        pos.y *= bladeScale;
+        pos.x *= mix(1.0, 2.5, flatten); // flatten: blades spread wider
+
+        // Rotate blade around Y
+        float cosR = cos(rotation);
+        float sinR = sin(rotation);
+        vec3 rotated = vec3(
+          pos.x * cosR - pos.z * sinR,
+          pos.y,
+          pos.x * sinR + pos.z * cosR
+        );
+
+        // Wind displacement (top of blade sways more)
+        float windPhase = offset.x * 0.3 + offset.z * 0.2 + phase;
+        float wind = sin(u_time * u_windFreq + windPhase) * u_windStrength * heightFactor;
+        float windZ = cos(u_time * u_windFreq * 0.7 + windPhase * 1.3) * u_windStrength * 0.5 * heightFactor;
+
+        // Flattened grass bends toward ground
+        float bendAngle = flatten * 1.4;
+        float bendCos = cos(bendAngle);
+        float bendSin = sin(bendAngle);
+        vec3 bent = vec3(
+          rotated.x,
+          rotated.y * bendCos - rotated.z * bendSin,
+          rotated.y * bendSin + rotated.z * bendCos
+        );
+
+        vec3 final = bent + offset;
+        final.x += wind;
+        final.z += windZ;
+
+        // Colour: green base, golden/straw for flattened
+        vec3 standingColor = color;
+        vec3 flatColor = vec3(0.45, 0.38, 0.18); // straw/wheat
+        vColor = mix(standingColor, flatColor, flatten * 0.8);
+
+        // Tip highlight
+        vColor += vec3(0.08, 0.06, 0.0) * heightFactor;
+
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(final, 1.0);
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vColor;
+      varying float vHeight;
+      varying float vFlatten;
+
+      void main() {
+        // Darken the base of blades
+        float shade = 0.5 + vHeight * 0.5;
+        vec3 col = vColor * shade;
+
+        // Subtle glow on flattened areas
+        col += vec3(0.02, 0.04, 0.01) * vFlatten * (1.0 - vHeight);
+
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `,
+    side: THREE.DoubleSide,
+  });
+
+  grassMesh = new THREE.Mesh(instancedGeo, grassMat);
+  grassMesh.frustumCulled = false;
+  scene.add(grassMesh);
+}
+
+function createCropCircleGlow() {
+  // Subtle ground glow under the crop circle
+  const glowGeo = new THREE.CircleGeometry(10, 64);
+  const glowMat = new THREE.ShaderMaterial({
+    uniforms: { u_time: { value: 0 } },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float u_time;
+      varying vec2 vUv;
+      void main() {
+        float dist = distance(vUv, vec2(0.5));
+        float glow = smoothstep(0.5, 0.0, dist) * 0.08;
+        float pulse = 0.5 + 0.5 * sin(u_time * 0.5);
+        glow *= 0.7 + pulse * 0.3;
+        gl_FragColor = vec4(0.3, 0.5, 0.2, glow);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+  });
+  const glowMesh = new THREE.Mesh(glowGeo, glowMat);
+  glowMesh.rotation.x = -Math.PI / 2;
+  glowMesh.position.y = -0.03;
+  glowMesh.name = 'glow';
+  scene.add(glowMesh);
+}
+
+// ============================================================
+// PATTERN APPLICATION — flatten grass along pattern lines
+// ============================================================
+
+function applyPattern(pattern, animate = true) {
+  activePattern = pattern;
+  const shapes = pattern.generate(1.0);
+
+  // Compute flatten amount for each grass blade
+  const newFlattenMap = new Float32Array(GRASS_COUNT).fill(0);
+
+  for (let i = 0; i < GRASS_COUNT; i++) {
+    const gx = grassPositions[i * 2];
+    const gz = grassPositions[i * 2 + 1];
+
+    let maxFlatten = 0;
+
+    for (const shape of shapes) {
+      let f = 0;
+
+      if (shape.type === 'circle') {
+        const dx = gx - (shape.cx || 0);
+        const dz = gz - (shape.cz || 0);
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const ringDist = Math.abs(dist - shape.r);
+        const lineWidth = 0.35;
+        if (ringDist < lineWidth) {
+          f = (1.0 - ringDist / lineWidth) * (shape.flatten || 1.0);
+        }
+      }
+
+      else if (shape.type === 'line') {
+        const lx = shape.x2 - shape.x1;
+        const lz = shape.z2 - shape.z1;
+        const len = Math.sqrt(lx * lx + lz * lz);
+        if (len > 0.01) {
+          const t = Math.max(0, Math.min(1, ((gx - shape.x1) * lx + (gz - shape.z1) * lz) / (len * len)));
+          const px = shape.x1 + t * lx;
+          const pz = shape.z1 + t * lz;
+          const dist = Math.sqrt((gx - px) ** 2 + (gz - pz) ** 2);
+          const lineWidth = 0.25;
+          if (dist < lineWidth) {
+            f = (1.0 - dist / lineWidth) * (shape.flatten || 1.0);
+          }
+        }
+      }
+
+      else if (shape.type === 'polygon') {
+        const sides = shape.sides;
+        const r = shape.r;
+        const off = shape.offset || 0;
+        for (let s = 0; s < sides; s++) {
+          const a1 = (s / sides) * Math.PI * 2 + off;
+          const a2 = ((s + 1) / sides) * Math.PI * 2 + off;
+          const x1 = r * Math.cos(a1), z1 = r * Math.sin(a1);
+          const x2 = r * Math.cos(a2), z2 = r * Math.sin(a2);
+          const lx = x2 - x1, lz = z2 - z1;
+          const len = Math.sqrt(lx * lx + lz * lz);
+          const t = Math.max(0, Math.min(1, ((gx - x1) * lx + (gz - z1) * lz) / (len * len)));
+          const px = x1 + t * lx, pz = z1 + t * lz;
+          const dist = Math.sqrt((gx - px) ** 2 + (gz - pz) ** 2);
+          const lineWidth = 0.3;
+          if (dist < lineWidth) {
+            f = Math.max(f, (1.0 - dist / lineWidth) * (shape.flatten || 1.0));
+          }
+        }
+      }
+
+      else if (shape.type === 'arc') {
+        const cx = shape.cx || 0, cz = shape.cz || 0;
+        const dx = gx - cx, dz = gz - cz;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const ringDist = Math.abs(dist - shape.r);
+        let angle = Math.atan2(dz, dx);
+        if (angle < 0) angle += Math.PI * 2;
+        let start = shape.startAngle % (Math.PI * 2);
+        let end = shape.endAngle % (Math.PI * 2);
+        if (start < 0) start += Math.PI * 2;
+        if (end < 0) end += Math.PI * 2;
+        let inArc = false;
+        if (start <= end) inArc = angle >= start && angle <= end;
+        else inArc = angle >= start || angle <= end;
+
+        const lineWidth = 0.3;
+        if (ringDist < lineWidth && inArc) {
+          f = (1.0 - ringDist / lineWidth) * (shape.flatten || 1.0);
+        }
+      }
+
+      maxFlatten = Math.max(maxFlatten, f);
+    }
+
+    newFlattenMap[i] = Math.min(1.0, maxFlatten);
+  }
+
+  targetFlattenMap = newFlattenMap;
+
+  if (!animate) {
+    flattenMap.set(newFlattenMap);
+    updateFlattenAttribute();
+  }
+
+  // Update UI
+  document.getElementById('sym-order').textContent = pattern.symmetry;
+  document.getElementById('pattern-name').textContent = pattern.name;
+  document.getElementById('freq-val').textContent = pattern.freq;
+  document.getElementById('freq-mode').textContent = `mode ${pattern.mode}`;
+
+  // Count flattened blades
+  const flatCount = newFlattenMap.reduce((sum, v) => sum + (v > 0.3 ? 1 : 0), 0);
+  document.getElementById('blade-count').textContent = flatCount.toLocaleString();
+}
+
+function updateFlattenAttribute() {
+  const attr = grassMesh.geometry.getAttribute('flatten');
+  attr.array.set(flattenMap);
+  attr.needsUpdate = true;
+}
+
+// ============================================================
+// UI — Pattern selector buttons
+// ============================================================
+
+function buildPatternButtons() {
+  const panel = document.getElementById('pattern-panel');
+  panel.innerHTML = '';
+
+  PATTERNS.forEach((p, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'pattern-btn' + (idx === 0 ? ' active' : '');
+    btn.innerHTML = `${p.icon}<span class="label">${p.name}</span>`;
+    btn.addEventListener('click', () => {
+      if (activePattern.id === p.id) return;
+
+      // Flash transition
+      const flash = document.getElementById('transition-flash');
+      flash.classList.add('flash');
+      setTimeout(() => flash.classList.remove('flash'), 600);
+
+      // Switch active button
+      panel.querySelectorAll('.pattern-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      applyPattern(p, true);
+    });
+    panel.appendChild(btn);
+  });
+}
+
+// ============================================================
+// ANIMATION LOOP
+// ============================================================
+
+function animate() {
+  animationId = requestAnimationFrame(animate);
+
+  const delta = clock.getDelta();
+  const elapsed = clock.getElapsedTime();
+  windTime = elapsed;
+
+  // Update grass shader time
+  grassMesh.material.uniforms.u_time.value = elapsed;
+
+  // Update glow
+  const glow = scene.getObjectByName('glow');
+  if (glow) glow.material.uniforms.u_time.value = elapsed;
+
+  // Smooth flatten transition
+  if (targetFlattenMap) {
+    let settled = true;
+    for (let i = 0; i < GRASS_COUNT; i++) {
+      const diff = targetFlattenMap[i] - flattenMap[i];
+      if (Math.abs(diff) > 0.001) {
+        flattenMap[i] += diff * Math.min(1.0, delta * flattenTransitionSpeed);
+        settled = false;
+      }
+    }
+    updateFlattenAttribute();
+    if (settled) targetFlattenMap = null;
+  }
+
+  // Slow orbit camera
+  const orbitSpeed = 0.04;
+  const orbitRadius = 24;
+  const camHeight = 16 + Math.sin(elapsed * 0.15) * 2;
+  camera.position.x = Math.cos(elapsed * orbitSpeed) * orbitRadius;
+  camera.position.z = Math.sin(elapsed * orbitSpeed) * orbitRadius;
+  camera.position.y = camHeight;
+  camera.lookAt(0, -1, 0);
+
+  renderer.render(scene, camera);
+}
+
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+
+init();
+</script>
+</body>
+</html>
