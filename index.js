@@ -504,8 +504,11 @@ function htmlPage(siteOrigin) {
         padding-right: 24px;
       }
     }
-    /* Mobile: 100dvh tracks dynamic browser chrome and reflows while scrolling (looks like zoom/parallax). Lock to svh. */
+    /* Mobile: 100dvh tracks dynamic browser chrome and reflows while scrolling. Lock to svh; stabilize text layer vs fixed header. */
     @media (max-width: 959px) {
+      .hero {
+        overflow-anchor: none;
+      }
       .hero,
       .hero-webgl-bg,
       .hero-layout {
@@ -515,6 +518,10 @@ function htmlPage(siteOrigin) {
       .hero-webgl-bg iframe {
         min-height: 100vh;
         min-height: 100svh;
+      }
+      .hero-layout {
+        transform: translate3d(0, 0, 0);
+        backface-visibility: hidden;
       }
     }
     .hero-inner { width: 100%; }

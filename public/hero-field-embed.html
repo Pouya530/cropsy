@@ -221,9 +221,8 @@
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    /** Aligned with homepage hero (index.js max-width 959px): static camera — no intro pan/zoom, no auto-rotate (scroll no longer feels “parallax”). */
-    const compactHeroViewport = window.matchMedia("(max-width: 959px)").matches;
-    const staticHeroCamera = reduceMotion || compactHeroViewport;
+    /** Only skip intro motion when user prefers reduced motion. */
+    const staticHeroCamera = reduceMotion;
     controls.autoRotate = false;
     controls.autoRotateSpeed = 0.42;
     controls.enableZoom = false;
@@ -274,14 +273,43 @@
       applyIntroCamera(0);
     }
 
+    let lastSyncW = 0;
+    let lastSyncH = 0;
+    /** Prefer iframe box size when embedded — avoids mobile innerHeight/visualViewport thrash while the parent page scrolls (was jittering the field). */
+    function readEmbedSize() {
+      const fe = window.frameElement;
+      if (fe && fe.clientWidth >= 1 && fe.clientHeight >= 1) {
+        return { w: fe.clientWidth, h: fe.clientHeight };
+      }
+      const vv = window.visualViewport;
+      if (vv) {
+        return { w: Math.max(1, vv.width), h: Math.max(1, vv.height) };
+      }
+      return { w: Math.max(1, window.innerWidth), h: Math.max(1, window.innerHeight) };
+    }
     function syncSize() {
-      const w = Math.max(1, window.innerWidth);
-      const h = Math.max(1, window.innerHeight);
+      const { w: rawW, h: rawH } = readEmbedSize();
+      const w = Math.round(rawW);
+      const h = Math.round(rawH);
+      if (w === lastSyncW && h === lastSyncH) return;
+      lastSyncW = w;
+      lastSyncH = h;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h, false);
     }
-    window.addEventListener("resize", syncSize);
+    let resizeRaf = 0;
+    function onResize() {
+      if (resizeRaf) cancelAnimationFrame(resizeRaf);
+      resizeRaf = requestAnimationFrame(() => {
+        resizeRaf = 0;
+        syncSize();
+      });
+    }
+    window.addEventListener("resize", onResize);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", onResize);
+    }
     syncSize();
 
     scene.add(new THREE.AmbientLight(0x2a3848, 0.78));
