@@ -359,6 +359,15 @@ function htmlPage(siteOrigin) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-H0JB9SJT0R"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-H0JB9SJT0R');
+  </script>
   ${headSeo}
   <title>${welcomeTitle}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />

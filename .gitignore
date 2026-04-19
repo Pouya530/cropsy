@@ -10,3 +10,4 @@ dist/
 
 # Project docs — keep out of remote per team preference
 *.md
+!SEO-AGENT.md
