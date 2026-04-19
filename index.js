@@ -504,6 +504,19 @@ function htmlPage(siteOrigin) {
         padding-right: 24px;
       }
     }
+    /* Mobile: 100dvh tracks dynamic browser chrome and reflows while scrolling (looks like zoom/parallax). Lock to svh. */
+    @media (max-width: 959px) {
+      .hero,
+      .hero-webgl-bg,
+      .hero-layout {
+        min-height: 100vh;
+        min-height: 100svh;
+      }
+      .hero-webgl-bg iframe {
+        min-height: 100vh;
+        min-height: 100svh;
+      }
+    }
     .hero-inner { width: 100%; }
     .hero-actions { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
     .hero h1 { text-shadow: 0 2px 24px rgba(0, 0, 0, 0.85); }
