@@ -199,7 +199,7 @@ html[data-theme="light"] .readout-stats .val {
 }
 
 .row input[type="range"]:focus-visible {
-  outline: 2px solid rgba(233, 30, 99, 0.55);
+  outline: 2px solid rgba(18, 144, 121, 0.75);
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -275,4 +275,46 @@ html[data-theme="light"] .row input[type="range"]::-moz-range-track {
 
 html[data-theme="light"] .row input[type="range"]::-moz-range-thumb {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+}
+
+/* Buttons / accordion: suppress magenta tap rings (WebKit accent); keyboard users get teal outline. */
+.app-shell button,
+.app-shell summary,
+.sim-nav-trigger,
+.sim-nav-layer__close,
+.panel-collapse-edge {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app-shell button:focus:not(:focus-visible),
+.app-shell summary:focus:not(:focus-visible),
+.sim-nav-trigger:focus:not(:focus-visible),
+.sim-nav-layer__close:focus:not(:focus-visible),
+.header-actions button:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+.app-shell button:focus-visible,
+.app-shell summary:focus-visible,
+.sim-nav-trigger:focus-visible,
+.sim-nav-layer__close:focus-visible,
+.header-actions button:focus-visible {
+  outline: 2px solid rgba(18, 144, 121, 0.88);
+  outline-offset: 2px;
+}
+
+.sim-nav-layer__links a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sim-nav-layer__links a:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+.sim-nav-layer__links a:focus-visible {
+  outline: 2px solid rgba(18, 144, 121, 0.88);
+  outline-offset: 2px;
+  border-radius: 6px;
 }

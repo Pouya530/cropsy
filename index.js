@@ -403,6 +403,18 @@ function htmlPage(siteOrigin) {
     }
     a { color: var(--link-grey); text-decoration: none; }
     a:hover { color: var(--accent-primary); transition: color 0.2s ease-in-out; }
+    button {
+      -webkit-tap-highlight-color: transparent;
+    }
+    button:focus:not(:focus-visible) {
+      outline: none;
+      box-shadow: none;
+    }
+    button:focus-visible {
+      outline: 2px solid var(--accent-tertiary);
+      outline-offset: 3px;
+      border-radius: 6px;
+    }
     .innerspacer { position: relative; padding: 56px 20px; max-width: 1120px; margin: 0 auto; }
     @media (min-width: 800px) { .innerspacer { padding: 56px 48px; } }
     .hero {

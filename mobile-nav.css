@@ -126,6 +126,29 @@ body.nav-mobile-open {
   touch-action: manipulation;
 }
 
+.site-header .nav-burger:focus:not(:focus-visible),
+.site-header a.logo:focus:not(:focus-visible),
+.site-header .nav--desktop a:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+.site-header .nav-burger:focus-visible,
+.site-header a.logo:focus-visible,
+.site-header .nav--desktop a:focus-visible {
+  outline: 2px solid rgba(18, 144, 121, 0.92);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.site-header .nav--desktop a:focus-visible {
+  border-radius: 4px;
+}
+
+.nav-burger::-moz-focus-inner {
+  border: 0;
+}
+
 .nav-burger-icon {
   display: flex;
   flex-direction: column;
@@ -246,6 +269,11 @@ body.nav-mobile-open {
     text-decoration-color: currentColor;
     animation: none;
     box-shadow: 0 0 16px rgba(233, 30, 206, 0.35);
+  }
+
+  .nav-how-btn:focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: none;
   }
 
   .nav-how-btn:focus-visible {
@@ -637,6 +665,13 @@ body:is(.page-home, .page-marketing) .nav-mobile-overlay--open .nav-mobile-credi
   .nav-mobile-credits a:hover {
     color: rgba(255, 255, 255, 0.95);
   }
+}
+
+.nav-mobile-main a:focus:not(:focus-visible),
+.nav-mobile-secondary a:focus:not(:focus-visible),
+.nav-mobile-credits a:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
 }
 
 .nav-mobile-main a:focus-visible,

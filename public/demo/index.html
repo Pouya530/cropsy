@@ -255,6 +255,10 @@
     }
     .control-panel.is-collapsed .panel-collapse-edge__chev { transform: rotate(180deg); }
     .panel-collapse-edge:hover { background: rgba(233, 30, 99, 0.25); }
+    .panel-collapse-edge:focus:not(:focus-visible) {
+      outline: none;
+      box-shadow: none;
+    }
     @media (min-width: 1024px) {
       .control-panel { --panel-w: 256px; }
       .panel-collapse-edge {
@@ -272,7 +276,7 @@
         border-color: rgba(90, 200, 175, 0.45);
       }
       .panel-collapse-edge:focus-visible {
-        outline: 2px solid rgba(233, 30, 99, 0.55);
+        outline: 2px solid rgba(18, 144, 121, 0.85);
         outline-offset: 2px;
       }
       .panel-collapse-edge__chev {
