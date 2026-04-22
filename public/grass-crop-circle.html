@@ -604,8 +604,8 @@
                     <option value="52000" selected>52 000 (max detail)</option>
                   </select>
                 </label>
-                <label>Blade height <span class="val" id="heightLabel">1.25</span>
-                  <input type="range" id="bladeHeight" min="0.55" max="1.45" step="0.02" value="1.25" />
+                <label>Blade height <span class="val" id="heightLabel">0.55</span>
+                  <input type="range" id="bladeHeight" min="0.55" max="1.45" step="0.02" value="0.55" />
                 </label>
                 <label>Blade width <span class="val" id="widthLabel">0.65</span>
                   <input type="range" id="bladeWidth" min="0.65" max="1.35" step="0.02" value="0.65" />
@@ -766,7 +766,7 @@
     let windVal = 0;
     let windFreq = 2.8;
     let flatIntensity = 0.45;
-    let bladeHeightMul = 1.25;
+    let bladeHeightMul = 0.55;
     let bladeWidthMul = 0.65;
 
     let grassPositions = new Float32Array(bladeCount * 2);
